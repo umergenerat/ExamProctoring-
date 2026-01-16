@@ -3,6 +3,7 @@ import type { Teacher, Session, DistributionResult, SessionAssignment } from './
 import { generateDistribution } from './services/distributionService';
 import { getImprovementSuggestions, extractTeachersFromImage } from './services/geminiService';
 import { exportToPDF, exportToCSV } from './services/exportService';
+import { saveToArchive, getArchive, deleteFromArchive, exportArchivedToPDF, type ArchivedDistribution } from './services/archiveService';
 import { translations, t } from './i18n';
 import type { TranslationKeys } from './i18n';
 
@@ -44,13 +45,15 @@ const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" he
 const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 me-3"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mx-2"><path d="M12 2a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Z" /><path d="M20 12h-2a2.5 2.5 0 0 1-2.5-2.5V8" /><path d="M4 12h2a2.5 2.5 0 0 0 2.5-2.5V8" /><path d="M12 12v2a2.5 2.5 0 0 0 2.5 2.5h0a2.5 2.5 0 0 1 2.5 2.5V20" /><path d="M12 12v2a2.5 2.5 0 0 1-2.5 2.5h0a2.5 2.5 0 0 0-2.5 2.5V20" /></svg>;
 const FileDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6" /><path d="m15 15-3 3-3-3" /></svg>;
-const UploadCloudIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 me-2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>;
+const UploadCloudIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 me-2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" /><path d="M12 12v9" /><path d="m16 16-4-4-4 4" /></svg>;
 const WarningIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-red-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
 const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mx-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
 const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>;
 const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>;
-const LanguageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="h-5 w-5"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>;
+const LanguageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="h-5 w-5"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>;
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
+const ArchiveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
+const ArchiveIconSmall = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
 
 
 // --- Main App Component ---
@@ -59,14 +62,14 @@ export default function App() {
     const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers);
     const [sessions, setSessions] = useState<Session[]>(initialSessions);
     const [hallCount, setHallCount] = useState<number>(3);
-    
+
     // UI states
     const [currentTeacher, setCurrentTeacher] = useState<Teacher | null>(null);
     const [currentSession, setCurrentSession] = useState<Session | null>(null);
     const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    
+
     // Result states
     const [distributionResult, setDistributionResult] = useState<DistributionResult | null>(null);
     const [aiSuggestions, setAiSuggestions] = useState<string>('');
@@ -79,7 +82,7 @@ export default function App() {
     const [conflictingTeachers, setConflictingTeachers] = useState<{ existing: Teacher; imported: Omit<Teacher, 'id' | 'availability'> }[]>([]);
     const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
     const [pendingNewTeachers, setPendingNewTeachers] = useState<Teacher[]>([]);
-    
+
     // Confirmation modal states
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
     const [confirmationModalConfig, setConfirmationModalConfig] = useState<{
@@ -95,13 +98,21 @@ export default function App() {
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [currentUser, setCurrentUser] = useState<string | null>(null);
 
+    // Archive states
+    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+    const [isSaveArchiveModalOpen, setIsSaveArchiveModalOpen] = useState(false);
+    const [archiveName, setArchiveName] = useState('');
+
+    // Export state
+    const [isExporting, setIsExporting] = useState(false);
+
     // Theme and Language states
     const [language, setLanguage] = useState<'ar' | 'en' | 'fr'>(() => (localStorage.getItem('language') as 'ar' | 'en' | 'fr') || 'ar');
     const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('theme') as 'light' | 'dark') || 'light');
 
     // --- Translation function ---
     const T = useCallback((key: TranslationKeys) => t(key, language), [language]);
-    
+
     // --- Effects for Theme and Language ---
     useEffect(() => {
         const root = document.documentElement;
@@ -120,9 +131,9 @@ export default function App() {
         }
         localStorage.setItem('theme', theme);
     }, [theme]);
-    
+
     const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
-    
+
     const toggleLanguage = () => {
         setLanguage(prev => {
             if (prev === 'ar') return 'en';
@@ -146,7 +157,7 @@ export default function App() {
         }
         setIsCheckingAuth(false);
     }, []);
-    
+
     // --- Authentication handlers ---
     const handleAuthSuccess = () => {
         const user = localStorage.getItem('proctoringAppCurrentUser');
@@ -195,7 +206,7 @@ export default function App() {
     };
 
     type Resolutions = { [teacherName: string]: 'update' | 'skip' };
-    
+
     const handleConflictResolution = (resolutions: Resolutions) => {
         setTeachers(prevTeachers => {
             let updatedTeachers = [...prevTeachers];
@@ -204,15 +215,15 @@ export default function App() {
             conflictingTeachers.forEach(conflict => {
                 const resolution = resolutions[conflict.existing.name];
                 if (resolution === 'update') {
-                    updatedTeachers = updatedTeachers.map(t => 
-                        t.id === conflict.existing.id 
-                            ? { 
+                    updatedTeachers = updatedTeachers.map(t =>
+                        t.id === conflict.existing.id
+                            ? {
                                 ...t, // Keep id and availability
                                 name: conflict.imported.name,
                                 subject: conflict.imported.subject,
                                 maxSessions: conflict.imported.maxSessions,
                                 notes: conflict.imported.notes,
-                              } 
+                            }
                             : t
                     );
                     updatedCount++;
@@ -236,7 +247,7 @@ export default function App() {
 
         setIsImporting(true);
         setImportError('');
-        
+
         try {
             let parsedTeachers: Omit<Teacher, 'id' | 'availability'>[] = [];
             if (file.type === 'text/csv') {
@@ -251,14 +262,14 @@ export default function App() {
                     };
                 }).filter(t => t.name);
             } else if (file.type.startsWith('image/')) {
-                const blobToBase64 = (blob: Blob): Promise<string> => 
+                const blobToBase64 = (blob: Blob): Promise<string> =>
                     new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
                     });
-                
+
                 const base64Image = await blobToBase64(file);
                 parsedTeachers = await extractTeachersFromImage(base64Image, file.type, language);
             } else {
@@ -331,7 +342,7 @@ export default function App() {
         });
         setIsConfirmationModalOpen(true);
     };
-    
+
     const handleSaveSession = (session: Session) => {
         if (session.id) {
             setSessions(sessions.map(s => s.id === session.id ? session : s));
@@ -416,7 +427,16 @@ export default function App() {
             performGeneration();
         }
     };
-    
+
+    const handleExportPDF = async () => {
+        if (!distributionResult) return;
+        setIsExporting(true);
+        // Small delay to allow allow UI to update if the export is instant (though font loading takes time)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await exportToPDF(distributionResult, sessions, teachers, hallCount, T, language);
+        setIsExporting(false);
+    };
+
     // --- Memoized Data for Display ---
     const sessionMap = useMemo(() => {
         return sessions.reduce((map, session) => {
@@ -424,7 +444,7 @@ export default function App() {
             return map;
         }, {} as Record<string, Session>);
     }, [sessions]);
-    
+
     const uniqueSubjects = useMemo(() => {
         const allSubjects = teachers.map(t => t.subject);
         return [...new Set(allSubjects)].filter(s => s).sort();
@@ -456,18 +476,21 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
                         <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">{currentUser}</span>
-                         <button onClick={() => setIsSettingsModalOpen(true)} title={T('settings')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <button onClick={() => setIsArchiveModalOpen(true)} title={T('viewArchive')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <ArchiveIcon />
+                        </button>
+                        <button onClick={() => setIsSettingsModalOpen(true)} title={T('settings')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                             <SettingsIcon />
                         </button>
                         <button onClick={toggleTheme} title={T('toggleTheme')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
                         </button>
                         <button onClick={toggleLanguage} title={T('toggleLanguage')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                             <LanguageIcon/>
-                             <span className="text-sm font-semibold">{getNextLanguageName()}</span>
+                            <LanguageIcon />
+                            <span className="text-sm font-semibold">{getNextLanguageName()}</span>
                         </button>
                         <button onClick={handleLogout} className="bg-red-500 text-white py-2 px-3 rounded-md hover:bg-red-600 flex items-center justify-center transition-colors text-sm">
-                           <LogOutIcon /> <span className='hidden sm:inline'>{T('logout')}</span>
+                            <LogOutIcon /> <span className='hidden sm:inline'>{T('logout')}</span>
                         </button>
                     </div>
                 </div>
@@ -524,7 +547,7 @@ export default function App() {
                     {/* Sessions & Halls Card */}
                     <Card>
                         <CardHeader><CalendarIcon /> {T('examsSchedule')}</CardHeader>
-                         <div className="max-h-48 overflow-y-auto ps-2">
+                        <div className="max-h-48 overflow-y-auto ps-2">
                             <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {sessions.map(s => (
                                     <li key={s.id} className="py-2 flex justify-between items-center">
@@ -540,7 +563,7 @@ export default function App() {
                                 ))}
                             </ul>
                         </div>
-                         <button onClick={handleAddSession} className="mt-4 w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 flex items-center justify-center transition-colors">
+                        <button onClick={handleAddSession} className="mt-4 w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 flex items-center justify-center transition-colors">
                             <PlusIcon /> {T('addSession')}
                         </button>
                         <div className="mt-4">
@@ -548,7 +571,7 @@ export default function App() {
                             <input type="number" id="hallCount" value={hallCount} onChange={e => setHallCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-center font-bold text-lg p-2" />
                         </div>
                     </Card>
-                    
+
                     <div className="sticky top-6">
                         <button onClick={handleGenerate} className="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-lg hover:bg-green-700 flex items-center justify-center text-lg font-bold transition-all transform hover:scale-105">
                             <BrainCircuitIcon /> {T('generateDistribution')}
@@ -561,7 +584,7 @@ export default function App() {
                 <div className="lg:col-span-2 space-y-6">
                     {!distributionResult && (
                         <div className="h-full flex flex-col items-center justify-center bg-white rounded-lg shadow p-8 text-center dark:bg-gray-800">
-                             <BrainCircuitIcon />
+                            <BrainCircuitIcon />
                             <h3 className="mt-2 text-xl font-medium text-gray-900 dark:text-gray-100">{T('readyToStart')}</h3>
                             <p className="mt-1 text-gray-500 dark:text-gray-400">{T('readyToStartHelp')}</p>
                         </div>
@@ -618,7 +641,7 @@ export default function App() {
                                         </div>
                                     )}
                                     {activeTab === 'byTeacher' && (
-                                         <div className="overflow-x-auto">
+                                        <div className="overflow-x-auto">
                                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                                 <thead className="bg-gray-50 dark:bg-gray-700">
                                                     <tr>
@@ -627,7 +650,7 @@ export default function App() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                                    {(Object.values(distributionResult.stats) as { name: string; count: number }[]).sort((a,b) => b.count - a.count).map(stat => (
+                                                    {(Object.values(distributionResult.stats) as { name: string; count: number }[]).sort((a, b) => b.count - a.count).map(stat => (
                                                         <tr key={stat.name}>
                                                             <td className="px-6 py-4 whitespace-nowrap">{stat.name}</td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-center font-bold text-lg">{stat.count}</td>
@@ -650,16 +673,33 @@ export default function App() {
                                     </div>
                                 )}
                             </Card>
-                            
+
                             {/* Export Card */}
-                             <Card>
+                            <Card>
                                 <CardHeader>{T('exportReports')}</CardHeader>
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <button onClick={() => exportToPDF(distributionResult, sessions, teachers, hallCount, T, language)} className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center justify-center transition-colors">
-                                        <FileDownIcon /> {T('exportPDF')}
+                                    <button onClick={handleExportPDF} disabled={isExporting} className={`flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center justify-center transition-colors ${isExporting ? 'opacity-75 cursor-not-allowed' : ''}`}>
+                                        {isExporting ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                {T('exporting')}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileDownIcon /> {T('exportPDF')}
+                                            </>
+                                        )}
                                     </button>
                                     <button onClick={() => exportToCSV(distributionResult, sessions, hallCount, T)} className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex items-center justify-center transition-colors">
                                         <FileDownIcon /> {T('exportCSV')}
+                                    </button>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                    <button onClick={() => setIsSaveArchiveModalOpen(true)} className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 flex items-center justify-center transition-colors">
+                                        <ArchiveIconSmall /> {T('saveToArchive')}
                                     </button>
                                 </div>
                             </Card>
@@ -694,6 +734,26 @@ export default function App() {
                         setIsConflictModalOpen(false);
                         setConflictingTeachers([]);
                         setPendingNewTeachers([]);
+                    }}
+                    T={T}
+                />
+            )}
+            {isArchiveModalOpen && (
+                <ArchiveModal
+                    onClose={() => setIsArchiveModalOpen(false)}
+                    T={T}
+                    language={language}
+                />
+            )}
+            {isSaveArchiveModalOpen && distributionResult && (
+                <SaveArchiveModal
+                    distributionResult={distributionResult}
+                    sessions={sessions}
+                    teachers={teachers}
+                    hallCount={hallCount}
+                    onClose={() => {
+                        setIsSaveArchiveModalOpen(false);
+                        setArchiveName('');
                     }}
                     T={T}
                 />
@@ -755,14 +815,14 @@ const AuthPage: React.FC<{ onAuthSuccess: () => void, T: (key: TranslationKeys) 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
             <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
-                 <div className="flex flex-col items-center justify-center mb-6">
+                <div className="flex flex-col items-center justify-center mb-6">
                     <AppIcon />
                     <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-100 mt-2">{T('appTitle')}</h1>
                     <p className="text-sm font-mono text-gray-500 dark:text-gray-400">AITLOUTOU</p>
                 </div>
-                
+
                 <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-200 mb-2">{isLoginMode ? T('authLoginTitle') : T('authSignupTitle')}</h2>
-                
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{T('email')}</label>
@@ -786,7 +846,7 @@ const AuthPage: React.FC<{ onAuthSuccess: () => void, T: (key: TranslationKeys) 
                             required
                         />
                     </div>
-                    
+
                     {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
                     <button
@@ -826,7 +886,7 @@ const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({ confl
     const handleResolutionChange = (teacherName: string, choice: 'update' | 'skip') => {
         setResolutions(prev => ({ ...prev, [teacherName]: choice }));
     };
-    
+
     const handleSelectAll = (choice: 'update' | 'skip') => {
         const newResolutions: { [teacherName: string]: 'update' | 'skip' } = {};
         conflicts.forEach(c => {
@@ -856,7 +916,7 @@ const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({ confl
                             <div className="text-xs grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
                                 <span className="text-gray-500 dark:text-gray-400">{T('currentSubject')}:</span> <span>{existing.subject}</span>
                                 <span className="text-gray-500 dark:text-gray-400">{T('newSubject')}:</span> <span className="font-semibold text-blue-600 dark:text-blue-400">{imported.subject}</span>
-                                
+
                                 <span className="text-gray-500 dark:text-gray-400">{T('currentSessions')}:</span> <span>{existing.maxSessions}</span>
                                 <span className="text-gray-500 dark:text-gray-400">{T('newSessions')}:</span> <span className="font-semibold text-blue-600 dark:text-blue-400">{imported.maxSessions}</span>
 
@@ -935,12 +995,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, T }) => {
                         placeholder={T('apiKeyPlaceholder')}
                     />
                 </div>
-                    <div className="pt-4 flex justify-between items-center">
+                <div className="pt-4 flex justify-between items-center">
                     <span className={`text-sm text-green-600 dark:text-green-400 transition-opacity duration-300 ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
                         {T('settingsSaved')}
                     </span>
                     <div className="flex space-x-2 rtl:space-x-reverse">
-                            <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">{T('close')}</button>
+                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">{T('close')}</button>
                         <button type="button" onClick={handleSave} className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">{T('save')}</button>
                     </div>
                 </div>
@@ -1051,9 +1111,9 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, subjects, onSave, 
             const parts = session.name.split(' - ');
             if (parts.length === 3) {
                 const [dayPart, periodPart, slotPart] = parts;
-    
+
                 const allLangs = ['ar', 'en', 'fr'] as const;
-    
+
                 const getIndex = (part: string, key: 'day' | 'slot' | 'period', count: number): number => {
                     for (const lang of allLangs) {
                         if (key === 'period') {
@@ -1067,11 +1127,11 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, subjects, onSave, 
                     }
                     return -1; // Not found
                 };
-                
+
                 const dayIndex = getIndex(dayPart, 'day', 5);
                 const periodIndex = getIndex(periodPart, 'period', 2);
                 const slotIndex = getIndex(slotPart, 'slot', 4);
-    
+
                 if (dayIndex !== -1) setDay(days[dayIndex]);
                 if (periodIndex !== -1) setPeriod(periods[periodIndex]);
                 if (slotIndex !== -1) setSlot(slots[slotIndex]);
@@ -1192,7 +1252,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ title, message, o
                     </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse sm:gap-x-3">
-                     <button
+                    <button
                         type="button"
                         onClick={onConfirm}
                         className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto sm:text-sm ${confirmButtonClass || 'bg-red-600 hover:bg-red-700 focus:ring-red-500'}`}
@@ -1206,6 +1266,188 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ title, message, o
                     >
                         {T('cancel')}
                     </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Archive Modal Component ---
+interface ArchiveModalProps {
+    onClose: () => void;
+    T: (key: TranslationKeys) => string;
+    language: 'ar' | 'en' | 'fr';
+}
+const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, T, language }) => {
+    const [archivedItems, setArchivedItems] = useState<ArchivedDistribution[]>([]);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setArchivedItems(getArchive());
+    }, []);
+
+    const handleDelete = (id: string) => {
+        deleteFromArchive(id);
+        setArchivedItems(getArchive());
+        setDeleteConfirmId(null);
+    };
+
+    const handleExportPDF = (item: ArchivedDistribution) => {
+        exportArchivedToPDF(item, T, language);
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-semibold">{T('archive')}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1">
+                    {archivedItems.length === 0 ? (
+                        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <p>{T('archiveEmpty')}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {archivedItems.map(item => (
+                                <div key={item.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-lg">{item.name}</h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                {T('archiveDate')}: {formatDate(item.date)}
+                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {item.sessions.length} {T('sessionCount')} • {item.hallCount} {T('hall')}
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleExportPDF(item)}
+                                                className="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm transition-colors"
+                                            >
+                                                PDF
+                                            </button>
+                                            {deleteConfirmId === item.id ? (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="bg-red-600 text-white py-1 px-2 rounded-md hover:bg-red-700 text-sm transition-colors"
+                                                    >
+                                                        ✓
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteConfirmId(null)}
+                                                        className="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400 text-sm transition-colors dark:bg-gray-600 dark:text-gray-200"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setDeleteConfirmId(item.id)}
+                                                    className="bg-gray-200 text-gray-700 py-1 px-3 rounded-md hover:bg-gray-300 text-sm transition-colors dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                                                >
+                                                    {T('deleteFromArchive')}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <div className="p-4 border-t dark:border-gray-700">
+                    <button onClick={onClose} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                        {T('close')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Save Archive Modal Component ---
+interface SaveArchiveModalProps {
+    distributionResult: DistributionResult;
+    sessions: Session[];
+    teachers: Teacher[];
+    hallCount: number;
+    onClose: () => void;
+    T: (key: TranslationKeys) => string;
+}
+const SaveArchiveModal: React.FC<SaveArchiveModalProps> = ({ distributionResult, sessions, teachers, hallCount, onClose, T }) => {
+    const [name, setName] = useState('');
+    const [isSaved, setIsSaved] = useState(false);
+
+    const handleSave = () => {
+        try {
+            saveToArchive(name, distributionResult, sessions, teachers, hallCount);
+            setIsSaved(true);
+            setTimeout(() => {
+                onClose();
+            }, 1500);
+        } catch (error) {
+            console.error('Failed to save to archive:', error);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-semibold">{T('saveToArchive')}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+                </div>
+                <div className="p-6">
+                    {isSaved ? (
+                        <div className="text-center py-4">
+                            <div className="text-green-600 dark:text-green-400 text-xl mb-2">✓</div>
+                            <p className="text-green-600 dark:text-green-400 font-semibold">{T('archiveSaved')}</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    {T('archiveName')}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder={T('archiveNamePlaceholder')}
+                                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2"
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                                >
+                                    {T('cancel')}
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
+                                >
+                                    {T('save')}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

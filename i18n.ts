@@ -2,12 +2,12 @@ export const translations = {
   ar: {
     appTitle: 'مُوَزِّع مهام حراسة الامتحانات',
     appDeveloper: 'تطوير: عمر ايت لوتو',
-    
+
     // --- Header ---
     logout: 'تسجيل الخروج',
     toggleTheme: 'تغيير المظهر',
     toggleLanguage: 'تغيير اللغة',
-    
+
     // --- General UI ---
     loading: 'جاري التحميل...',
     save: 'حفظ',
@@ -21,16 +21,16 @@ export const translations = {
     manageTeachers: 'إدارة الأساتذة',
     addTeacher: 'إضافة أستاذ',
     maxSessionsSuffix: 'حصص كحد أقصى',
-    
+
     // --- Session Management ---
     examsSchedule: 'برنامج الامتحانات',
     addSession: 'إضافة حصة',
     sessionSubject: 'المادة',
     hallCountLabel: 'عدد القاعات',
-    
+
     // --- Main Action ---
     generateDistribution: 'توليد التوزيع الذكي',
-    
+
     // --- Import ---
     importTeachers: 'استيراد بيانات الأساتذة',
     importTeachersHelp: 'استورد من ملف CSV أو صورة لجدول (PNG, JPG). للـ PDF، يرجى أخذ لقطة شاشة.',
@@ -42,7 +42,7 @@ export const translations = {
     importSuccess: 'اكتمل الاستيراد. تم تحديث {updated} أساتذة وإضافة {added} أساتذة جدد.',
     importSuccessNoConflict: 'تم استيراد {count} أساتذة بنجاح.',
     importNoNewTeachers: 'لم يتم العثور على أساتذة جدد لاستيرادهم أو جميعهم موجودون بالفعل.',
-    
+
     // --- Conflict Modal ---
     importConflictTitle: 'معالجة تكرار الأسماء',
     importConflictMessage: 'تم العثور على أساتذة في الملف بنفس أسماء أساتذة موجودين بالفعل في النظام. الرجاء تحديد الإجراء المطلوب لكل حالة.',
@@ -72,7 +72,7 @@ export const translations = {
     noReserves: 'لا يوجد',
     teacher: 'الأستاذ',
     sessionCount: 'عدد الحصص',
-    
+
     // --- AI Suggestions ---
     aiSuggestionsTitle: 'اقتراحات التحسين والتنظيم',
     aiAnalyzing: 'جاري تحليل النتائج وطلب الاقتراحات من الذكاء الاصطناعي',
@@ -85,13 +85,15 @@ export const translations = {
     geminiApiKey: 'مفتاح Gemini API',
     apiKeyPlaceholder: 'أدخل مفتاحك هنا',
     settingsSaved: 'تم الحفظ بنجاح!',
-    
+
     // --- Export ---
     exportReports: 'تصدير التقارير',
     exportPDF: 'تصدير PDF',
+    errorExportingPDF: 'حدث خطأ أثناء تصدير PDF. يرجى المحاولة مرة أخرى.',
     exportCSV: 'تصدير CSV',
+    exporting: 'جاري التصدير...',
     filePrefix: 'توزيع_الحراسة',
-    
+
     // --- Auth Page ---
     authLoginTitle: 'تسجيل الدخول',
     authSignupTitle: 'إنشاء حساب جديد',
@@ -106,7 +108,7 @@ export const translations = {
     authErrorInvalid: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
     authErrorPassword: 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.',
     authErrorExists: 'هذا البريد الإلكتروني مسجل بالفعل.',
-    
+
     // --- Modals ---
     modalEditTeacher: 'تعديل بيانات الأستاذ',
     modalAddTeacher: 'إضافة أستاذ جديد',
@@ -125,7 +127,7 @@ export const translations = {
     slot: 'الحصة',
     morningPeriod: 'الفترة الصباحية',
     eveningPeriod: 'الفترة المسائية',
-    
+
     // --- Confirmation Modals ---
     deleteTeacherConfirmTitle: 'تأكيد حذف الأستاذ',
     deleteTeacherConfirmMessage: 'هل أنت متأكد من حذف هذا الأستاذ؟ لا يمكن التراجع عن هذا الإجراء.',
@@ -156,7 +158,20 @@ export const translations = {
     csvProctor1: 'المراقب 1',
     csvProctor2: 'المراقب 2',
     csvReserves: 'الاحتياط',
-    
+
+    // --- Archive ---
+    archive: 'الأرشيف',
+    archiveEmpty: 'لا توجد توزيعات محفوظة',
+    saveToArchive: 'حفظ في الأرشيف',
+    archiveName: 'اسم التوزيع',
+    archiveDate: 'التاريخ',
+    deleteFromArchive: 'حذف',
+    archiveSaved: 'تم الحفظ في الأرشيف بنجاح!',
+    viewArchive: 'عرض الأرشيف',
+    archiveNamePlaceholder: 'مثال: امتحانات الفصل الأول',
+    confirmDeleteArchive: 'هل أنت متأكد من حذف هذا التوزيع من الأرشيف؟',
+    archiveActions: 'الإجراءات',
+
     // --- Gemini Prompts ---
     geminiStatsSummaryLine: 'الأستاذ {name}: {count} حصص',
     geminiSuggestionsPrompt: `
@@ -187,12 +202,12 @@ export const translations = {
   en: {
     appTitle: 'Exam Proctoring Duty Distributor',
     appDeveloper: 'Developed by: Aomar Ait Loutou',
-    
+
     // --- Header ---
     logout: 'Logout',
     toggleTheme: 'Toggle Theme',
     toggleLanguage: 'Toggle Language',
-    
+
     // --- General UI ---
     loading: 'Loading...',
     save: 'Save',
@@ -201,12 +216,12 @@ export const translations = {
     unavailable: 'Unavailable',
     none: 'None',
     close: 'Close',
-    
+
     // --- Teacher Management ---
     manageTeachers: 'Manage Teachers',
     addTeacher: 'Add Teacher',
     maxSessionsSuffix: 'max sessions',
-    
+
     // --- Session Management ---
     examsSchedule: 'Exams Schedule',
     addSession: 'Add Session',
@@ -215,7 +230,7 @@ export const translations = {
 
     // --- Main Action ---
     generateDistribution: 'Generate Smart Distribution',
-    
+
     // --- Import ---
     importTeachers: 'Import Teacher Data',
     importTeachersHelp: 'Import from a CSV file or an image of a table (PNG, JPG). For PDFs, please take a screenshot.',
@@ -257,7 +272,7 @@ export const translations = {
     noReserves: 'None',
     teacher: 'Teacher',
     sessionCount: 'Session Count',
-    
+
     // --- AI Suggestions ---
     aiSuggestionsTitle: 'Improvement and Organization Suggestions',
     aiAnalyzing: 'Analyzing results and requesting suggestions from the AI',
@@ -274,9 +289,11 @@ export const translations = {
     // --- Export ---
     exportReports: 'Export Reports',
     exportPDF: 'Export PDF',
+    errorExportingPDF: 'Failed to export PDF. Please try again.',
     exportCSV: 'Export CSV',
+    exporting: 'Exporting...',
     filePrefix: 'Proctoring_Distribution',
-    
+
     // --- Auth Page ---
     authLoginTitle: 'Login',
     authSignupTitle: 'Create a New Account',
@@ -291,7 +308,7 @@ export const translations = {
     authErrorInvalid: 'Incorrect email or password.',
     authErrorPassword: 'Password must be at least 6 characters long.',
     authErrorExists: 'This email is already registered.',
-    
+
     // --- Modals ---
     modalEditTeacher: 'Edit Teacher Information',
     modalAddTeacher: 'Add New Teacher',
@@ -310,7 +327,7 @@ export const translations = {
     slot: 'Slot',
     morningPeriod: 'Morning Period',
     eveningPeriod: 'Evening Period',
-    
+
     // --- Confirmation Modals ---
     deleteTeacherConfirmTitle: 'Confirm Teacher Deletion',
     deleteTeacherConfirmMessage: 'Are you sure you want to delete this teacher? This action cannot be undone.',
@@ -342,6 +359,19 @@ export const translations = {
     csvProctor2: 'Proctor 2',
     csvReserves: 'Reserves',
 
+    // --- Archive ---
+    archive: 'Archive',
+    archiveEmpty: 'No saved distributions',
+    saveToArchive: 'Save to Archive',
+    archiveName: 'Distribution Name',
+    archiveDate: 'Date',
+    deleteFromArchive: 'Delete',
+    archiveSaved: 'Saved to archive successfully!',
+    viewArchive: 'View Archive',
+    archiveNamePlaceholder: 'e.g., First Semester Exams',
+    confirmDeleteArchive: 'Are you sure you want to delete this distribution from the archive?',
+    archiveActions: 'Actions',
+
     // --- Gemini Prompts ---
     geminiStatsSummaryLine: 'Teacher {name}: {count} sessions',
     geminiSuggestionsPrompt: `
@@ -372,12 +402,12 @@ Ensure the output is only valid JSON and nothing else.`,
   fr: {
     appTitle: 'Distributeur de Tâches de Surveillance d\'Examen',
     appDeveloper: 'Développé par: Aomar Ait Loutou',
-    
+
     // --- Header ---
     logout: 'Déconnexion',
     toggleTheme: 'Changer de Thème',
     toggleLanguage: 'Changer de Langue',
-    
+
     // --- General UI ---
     loading: 'Chargement...',
     save: 'Enregistrer',
@@ -386,12 +416,12 @@ Ensure the output is only valid JSON and nothing else.`,
     unavailable: 'Indisponible',
     none: 'Aucun',
     close: 'Fermer',
-    
+
     // --- Teacher Management ---
     manageTeachers: 'Gérer les Enseignants',
     addTeacher: 'Ajouter un Enseignant',
     maxSessionsSuffix: 'sessions max',
-    
+
     // --- Session Management ---
     examsSchedule: 'Calendrier des Examens',
     addSession: 'Ajouter une Session',
@@ -400,7 +430,7 @@ Ensure the output is only valid JSON and nothing else.`,
 
     // --- Main Action ---
     generateDistribution: 'Générer la Répartition Intelligente',
-    
+
     // --- Import ---
     importTeachers: 'Importer les Données des Enseignants',
     importTeachersHelp: 'Importer depuis un fichier CSV ou une image d\'un tableau (PNG, JPG). Pour les PDF, veuillez prendre une capture d\'écran.',
@@ -442,7 +472,7 @@ Ensure the output is only valid JSON and nothing else.`,
     noReserves: 'Aucun',
     teacher: 'Enseignant',
     sessionCount: 'Nombre de Sessions',
-    
+
     // --- AI Suggestions ---
     aiSuggestionsTitle: 'Suggestions d\'Amélioration',
     aiAnalyzing: 'Analyse des résultats et demande de suggestions à l\'IA',
@@ -455,13 +485,15 @@ Ensure the output is only valid JSON and nothing else.`,
     geminiApiKey: 'Clé API Gemini',
     apiKeyPlaceholder: 'Entrez votre clé ici',
     settingsSaved: 'Enregistré avec succès !',
-    
+
     // --- Export ---
     exportReports: 'Exporter les Rapports',
     exportPDF: 'Exporter en PDF',
+    errorExportingPDF: 'Échec de l\'exportation PDF. Veuillez réessayer.',
     exportCSV: 'Exporter en CSV',
+    exporting: 'Exportation...',
     filePrefix: 'Repartition_Surveillance',
-    
+
     // --- Auth Page ---
     authLoginTitle: 'Connexion',
     authSignupTitle: 'Créer un Nouveau Compte',
@@ -476,7 +508,7 @@ Ensure the output is only valid JSON and nothing else.`,
     authErrorInvalid: 'E-mail ou mot de passe incorrect.',
     authErrorPassword: 'Le mot de passe doit comporter au moins 6 caractères.',
     authErrorExists: 'Cet e-mail est déjà enregistré.',
-    
+
     // --- Modals ---
     modalEditTeacher: 'Modifier les Informations de l\'Enseignant',
     modalAddTeacher: 'Ajouter un Nouvel Enseignant',
@@ -495,7 +527,7 @@ Ensure the output is only valid JSON and nothing else.`,
     slot: 'Séance',
     morningPeriod: 'Période du Matin',
     eveningPeriod: 'Période de l\'Après-midi',
-    
+
     // --- Confirmation Modals ---
     deleteTeacherConfirmTitle: 'Confirmer la Suppression de l\'Enseignant',
     deleteTeacherConfirmMessage: 'Êtes-vous sûr de vouloir supprimer cet enseignant ? Cette action est irréversible.',
@@ -526,7 +558,20 @@ Ensure the output is only valid JSON and nothing else.`,
     csvProctor1: 'Surveillant 1',
     csvProctor2: 'Surveillant 2',
     csvReserves: 'Réservistes',
-    
+
+    // --- Archive ---
+    archive: 'Archives',
+    archiveEmpty: 'Aucune distribution enregistrée',
+    saveToArchive: 'Enregistrer dans les Archives',
+    archiveName: 'Nom de la Distribution',
+    archiveDate: 'Date',
+    deleteFromArchive: 'Supprimer',
+    archiveSaved: 'Enregistré dans les archives avec succès !',
+    viewArchive: 'Voir les Archives',
+    archiveNamePlaceholder: 'ex: Examens du Premier Semestre',
+    confirmDeleteArchive: 'Êtes-vous sûr de vouloir supprimer cette distribution des archives ?',
+    archiveActions: 'Actions',
+
     // --- Gemini Prompts ---
     geminiStatsSummaryLine: 'Enseignant {name}: {count} sessions',
     geminiSuggestionsPrompt: `

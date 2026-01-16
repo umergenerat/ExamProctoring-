@@ -1,5 +1,10 @@
 import type { Teacher, Session, DistributionResult, FullAssignment, TeacherStats } from '../types';
 
+// Interface to track which halls each teacher has been assigned to
+interface TeacherHallHistory {
+  [teacherId: string]: Set<number>;
+}
+
 // Helper to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
   const newArray = [...array];
@@ -25,10 +30,11 @@ export const generateDistribution = (
     return acc;
   }, {} as TeacherStats);
 
-  const teachersNeededPerSession = hallCount * 2;
-
-  // Warning for insufficient teachers is now handled in the UI before calling this function,
-  // making this service cleaner and more focused on the distribution logic itself.
+  // Track hall history to avoid repeating same hall for each teacher
+  const teacherHallHistory: TeacherHallHistory = {};
+  teachers.forEach(t => {
+    teacherHallHistory[t.id] = new Set<number>();
+  });
 
   for (const session of sessions) {
     // Filter teachers who can proctor this session (not their subject, and are available)
@@ -36,17 +42,10 @@ export const generateDistribution = (
         t.subject.toLowerCase() !== session.subject.toLowerCase() &&
         !(t.availability || []).includes(session.id)
     );
-
-    // Sort available teachers by current assignment count (ascending) to prioritize those with fewer assignments
-    availableTeachers.sort((a, b) => teacherStats[a.id].count - teacherStats[b.id].count);
     
     // Further filter by max sessions allowed
     availableTeachers = availableTeachers.filter(t => teacherStats[t.id].count < t.maxSessions);
 
-    // Shuffle to add randomness among teachers with the same assignment count
-    availableTeachers = shuffleArray(availableTeachers);
-    
-    const assignedTeachers: Teacher[] = [];
     const hallAssignments: { [hallNumber: number]: Teacher[] } = {};
 
     for (let i = 1; i <= hallCount; i++) {
@@ -55,12 +54,35 @@ export const generateDistribution = (
 
     // Assign 2 teachers per hall
     for (let hallNum = 1; hallNum <= hallCount; hallNum++) {
+      // Sort available teachers by:
+      // 1. Least assignment count (prioritize those with fewer sessions)
+      // 2. Whether they have NOT been in this hall before (prioritize new halls)
+      // 3. Add randomness among equal candidates
+      const sortedTeachers = [...availableTeachers].sort((a, b) => {
+        // Primary: least assignments first
+        const countDiff = teacherStats[a.id].count - teacherStats[b.id].count;
+        if (countDiff !== 0) return countDiff;
+        
+        // Secondary: prefer teachers who haven't been in this hall
+        const aHasBeenInHall = teacherHallHistory[a.id].has(hallNum) ? 1 : 0;
+        const bHasBeenInHall = teacherHallHistory[b.id].has(hallNum) ? 1 : 0;
+        if (aHasBeenInHall !== bHasBeenInHall) return aHasBeenInHall - bHasBeenInHall;
+        
+        // Tertiary: random for variety
+        return Math.random() - 0.5;
+      });
+
       for (let i = 0; i < 2; i++) {
-        if (availableTeachers.length > 0) {
-          const teacher = availableTeachers.shift()!;
+        if (sortedTeachers.length > 0) {
+          const teacher = sortedTeachers.shift()!;
           hallAssignments[hallNum].push(teacher);
-          assignedTeachers.push(teacher);
           teacherStats[teacher.id].count++;
+          
+          // Track that this teacher has been assigned to this hall
+          teacherHallHistory[teacher.id].add(hallNum);
+          
+          // Remove assigned teacher from availableTeachers
+          availableTeachers = availableTeachers.filter(t => t.id !== teacher.id);
         }
       }
     }
