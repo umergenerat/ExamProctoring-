@@ -3,15 +3,14 @@ import autoTable from 'jspdf-autotable';
 import type { DistributionResult, Session, Teacher } from '../types';
 import type { TFunction } from '../i18n';
 
-// Base64 encoded SVG for the app icon
-const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
-const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSVG)}`;
+// Base64 encoded PNG for the app icon (Simple document icon to avoid SVG issues)
+const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJwSURBVFiF7ZaxTttAFIa/sRMHQwoDVaUqCgMpE1VlqLJAfYB8ASzMgvUB8gkwMTRLhwonVFyqSB0qWhAIiRAlF0Nih7YdF5sYiYzp7/Tu9J/v3XPv3XPEzJjRaLSa69Z0fV9fX38eHh5+nU6nX8x8YmaTzMzM7JuZ39/f3/94fX39Y2Zm5sfT09OX+Xz+s9FoxOPjYy6Xy9ztdjo5OeFwOGS/3+fDw0N2Op3c29vjdrvlzs4Od7vddrvd/vL5/M/Z2dnP6XT6xbX/F4BH1/f1vb093t/fc7lcdgE2m00ej8fc7/e52WxyOBzy6Ogo9/f3uVgs3B8Kh8MhDw8PXGq1Wu3d9X192Gw2Xq/X7Ha7XACw2+1ysVjkYrHIxWKRx+NxF2AymXABqtUql8tlF+D29pbb7TYXAwCcnZ1xPp93AZ6fn10AwIEDBw4cOHDgwIEDBw4cOHDg/+L/4sD/xcH/xYED/xcH/i8O/F8cOHDgwIEDBw4cOHDgwIEDBw4cOHDgwIEDBw4cOHDgwMGfA9fX116tVt3v993v993v993v993v993v9/14PHZ/OAwGg9zpdFytVl2tVl2tVl2tVl2tVl2tVl2tVl2tVl2tVt1ut7/f73+1Wq3vLw+4uLjweDzmcrn06+trF+D19dUFODk5cQFOT0+9Xq/dbDa/vzwAmDn7/v7+12w28+Pjox8fH3MBwOPx6AKMxiMXYDQa+fHxcS6Xy1+tVut71/f1yWTi1WrV6/Xar6+vXYDD4dAFGI1GLsBoNPLr66sL8Pz87NFo5C8PAMz8aWbTzWbzxcy3ZjabzWZ+e3v7w8y3Zjb9zQMA/wA2/6G5yvTbnAAAAABJRU5ErkJggg==';
 
 
 // Function to add Arabic font to jsPDF
 const loadArabicFont = async (doc: jsPDF) => {
     try {
-        const fontUrl = 'https://fonts.gstatic.com/s/cairo/v28/SLXVc1nY6HkvangtZmpQdkhYl0E.ttf';
+        const fontUrl = 'https://raw.githubusercontent.com/Gue3bara/Cairo/master/fonts/ttf/Cairo-Regular.ttf';
         const response = await fetch(fontUrl);
         if (!response.ok) throw new Error('Failed to fetch font');
         const buffer = await response.blob();
@@ -60,7 +59,7 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
         }
 
         // --- Header on first page ---
-        doc.addImage(iconDataUrl, 'SVG', isRtl ? 185 : 15, 9, 12, 12);
+        doc.addImage(iconDataUrl, 'PNG', isRtl ? 185 : 15, 9, 12, 12);
         doc.text(T('pdfReportTitle'), 105, 15, { align: 'center' });
 
         sessions.forEach((session, index) => {
@@ -145,7 +144,7 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
             // Brand Name (always LTR)
             doc.setFont('helvetica', 'normal');
             doc.text('AITLOUTOU', isRtl ? pageWidth - 28 : 20, pageHeight - 10, { align: isRtl ? 'right' : 'left' });
-            doc.addImage(iconDataUrl, 'SVG', isRtl ? pageWidth - 18 : 10, pageHeight - 14.5, 8, 8);
+            doc.addImage(iconDataUrl, 'PNG', isRtl ? pageWidth - 18 : 10, pageHeight - 14.5, 8, 8);
 
             // Developer Name
             doc.setFont(isRtl ? 'Cairo' : 'helvetica', 'normal');
