@@ -1,46 +1,82 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import type { DistributionResult, Session, Teacher } from '../types';
 import type { TFunction } from '../i18n';
 
-// Base64 encoded PNG for the app icon (Simple document icon to avoid SVG issues)
-const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJwSURBVFiF7ZaxTttAFIa/sRMHQwoDVaUqCgMpE1VlqLJAfYB8ASzMgvUB8gkwMTRLhwonVFyqSB0qWhAIiRAlF0Nih7YdF5sYiYzp7/Tu9J/v3XPv3XPEzJjRaLSa69Z0fV9fX38eHh5+nU6nX8x8YmaTzMzM7JuZ39/f3/94fX39Y2Zm5sfT09OX+Xz+s9FoxOPjYy6Xy9ztdjo5OeFwOGS/3+fDw0N2Op3c29vjdrvlzs4Od7vddrvd/vL5/M/Z2dnP6XT6xbX/F4BH1/f1vb093t/fc7lcdgE2m00ej8fc7/e52WxyOBzy6Ogo9/f3uVgs3B8Kh8MhDw8PXGq1Wu3d9X192Gw2Xq/X7Ha7XACw2+1ysVjkYrHIxWKRx+NxF2AymXABqtUql8tlF+D29pbb7TYXAwCcnZ1xPp93AZ6fn10AwIEDBw4cOHDgwIEDBw4cOHDg/+L/4sD/xcH/xYED/xcH/i8O/F8cOHDgwIEDBw4cOHDgwIEDBw4cOHDgwIEDBw4cOHDgwMGfA9fX116tVt3v993v993v993v993v993v9/14PHZ/OAwGg9zpdFytVl2tVl2tVl2tVl2tVl2tVl2tVl2tVl2tVt1ut7/f73+1Wq3vLw+4uLjweDzmcrn06+trF+D19dUFODk5cQFOT0+9Xq/dbDa/vzwAmDn7/v7+12w28+Pjox8fH3MBwOPx6AKMxiMXYDQa+fHxcS6Xy1+tVut71/f1yWTi1WrV6/Xar6+vXYDD4dAFGI1GLsBoNPLr66sL8Pz87NFo5C8PAMz8aWbTzWbzxcy3ZjabzWZ+e3v7w8y3Zjb9zQMA/wA2/6G5yvTbnAAAAABJRU5ErkJggg==';
+// Base64 encoded PNG for the app icon (use a minimal known-good PNG to avoid decode issues)
+const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=';
 
 
 // Function to add Arabic font to jsPDF
 const loadArabicFont = async (doc: jsPDF) => {
     try {
-        const fontUrl = 'https://raw.githubusercontent.com/Gue3bara/Cairo/master/fonts/ttf/Cairo-Regular.ttf';
-        const response = await fetch(fontUrl);
-        if (!response.ok) throw new Error('Failed to fetch font');
-        const buffer = await response.blob();
+        // Prefer a local copy first (place `Cairo-Regular.ttf` under `public/fonts/`),
+        // then fall back to the previously used raw GitHub URL.
+        const fontUrls = [
+            '/fonts/Cairo-Regular.ttf',
+            'https://raw.githubusercontent.com/Gue3bara/Cairo/master/fonts/ttf/Cairo-Regular.ttf'
+        ];
+
+        let buffer: Blob | null = null;
+        let lastError: any = null;
+
+        for (const url of fontUrls) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to fetch font from ${url}: ${response.status}`);
+                buffer = await response.blob();
+                break; // success
+            } catch (err) {
+                lastError = err;
+                console.warn('Font fetch failed for', url, err);
+            }
+        }
+
+        if (!buffer) {
+            console.error('All font fetch attempts failed', lastError);
+            doc.setFont('helvetica');
+            return false;
+        }
 
         return new Promise<boolean>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const base64data = reader.result as string;
-                // Remove the data URL prefix (e.g., "data:application/octet-stream;base64,")
-                const base64 = base64data.split(',')[1];
+                try {
+                    const base64data = reader.result as string;
+                    const base64 = base64data.split(',')[1];
 
-                if (base64) {
-                    doc.addFileToVFS('Cairo.ttf', base64);
-                    doc.addFont('Cairo.ttf', 'Cairo', 'normal');
-                    doc.setFont('Cairo');
-                    resolve(true);
-                } else {
-                    console.error('Failed to parse base64 font data');
+                    if (base64) {
+                        try {
+                            doc.addFileToVFS('Cairo.ttf', base64);
+                            doc.addFont('Cairo.ttf', 'Cairo', 'normal');
+                            doc.setFont('Cairo');
+                            resolve(true);
+                        } catch (fontErr) {
+                            console.error('Failed to register font with jsPDF:', fontErr);
+                            // If the font can't be used (e.g., missing cmap), fallback
+                            doc.setFont('helvetica');
+                            resolve(false);
+                        }
+                    } else {
+                        console.error('Failed to parse base64 font data');
+                        resolve(false);
+                    }
+                } catch (err) {
+                    console.error('Error processing font data:', err);
+                    doc.setFont('helvetica');
                     resolve(false);
                 }
             };
             reader.onerror = () => {
                 console.error('FileReader error');
+                doc.setFont('helvetica');
                 resolve(false);
             };
-            reader.readAsDataURL(buffer);
+            reader.readAsDataURL(buffer as Blob);
         });
     } catch (error) {
         console.error('Error loading Arabic font:', error);
-        // Fallback to standard font
         doc.setFont('helvetica');
         return false;
     }
@@ -52,62 +88,157 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
         const isRtl = lang === 'ar';
 
         if (isRtl) {
+            // For Arabic, use html2canvas rendering to preserve glyph shaping and ligatures.
+            // Ensure the Cairo font is loaded via loadArabicFont for fallback in non-canvas flows.
             await loadArabicFont(doc);
             doc.setR2L(true);
         } else {
             doc.setFont('helvetica');
         }
 
-        // --- Header on first page ---
-        doc.addImage(iconDataUrl, 'PNG', isRtl ? 185 : 15, 9, 12, 12);
-        doc.text(T('pdfReportTitle'), 105, 15, { align: 'center' });
+        if (isRtl) {
+            // Render each session as an HTML page and capture with html2canvas to preserve Arabic rendering.
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
 
-        sessions.forEach((session, index) => {
-            if (index > 0) doc.addPage();
-            const sessionTitle = `${T('pdfSessionTitle')} ${session.name} - ${T('sessionSubject')}: ${session.subject}`;
-            doc.text(sessionTitle, isRtl ? 200 : 10, 30, { align: isRtl ? 'right' : 'left' });
+            // Helper to render an element to PDF page
+            const renderElementToPdf = async (el: HTMLElement, addNewPage = false) => {
+                const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                const imgData = canvas.toDataURL('image/png');
+                if (addNewPage) doc.addPage();
+                doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+            };
 
-            const sessionAssignment = result.assignments[session.id];
-            if (!sessionAssignment) return;
+            // Create a temporary container for pages
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '800px';
+            container.style.padding = '20px';
+            container.dir = 'rtl';
 
-            const body = [];
-            for (let i = 1; i <= hallCount; i++) {
-                const proctors = sessionAssignment.hallAssignments[i] || [];
-                const proctor1 = proctors[0]?.name || T('unavailable');
-                const proctor2 = proctors[1]?.name || T('unavailable');
-                const hallLabel = `${T('hall')} ${i}`;
+            // Ensure font-face is available inside the temp container
+            const style = document.createElement('style');
+            style.innerHTML = `@font-face { font-family: 'Cairo'; src: url('/fonts/Cairo-Regular.ttf') format('truetype'); }
+                body, div { font-family: 'Cairo', sans-serif; color: #111827; }
+                .pdf-page { width: 800px; background: white; padding: 16px; box-sizing: border-box; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; }
+                th { background: #f3f4f6; }
+            `;
+            container.appendChild(style);
 
-                // Note: For Arabic in autoTable, we often need to reverse the text manually if the complex script support isn't perfect,
-                // but relying on the font and R2L setting is the first step.
-                if (isRtl) {
-                    body.push([proctor2, proctor1, hallLabel]);
-                } else {
-                    body.push([hallLabel, proctor1, proctor2]);
+            // Header page
+            const headerPage = document.createElement('div');
+            headerPage.className = 'pdf-page';
+            headerPage.innerHTML = `<div style="text-align:center; margin-bottom:8px;"><h2>${T('pdfReportTitle')}</h2></div>`;
+            container.appendChild(headerPage);
+            await renderElementToPdf(headerPage, false);
+
+            // Session pages
+            for (let s = 0; s < sessions.length; s++) {
+                const session = sessions[s];
+                const sessionAssignment = result.assignments[session.id];
+                const pageEl = document.createElement('div');
+                pageEl.className = 'pdf-page';
+                const sessionTitle = `${T('pdfSessionTitle')} ${session.name} - ${T('sessionSubject')}: ${session.subject}`;
+                let html = `<h3 style="text-align: right;">${sessionTitle}</h3>`;
+
+                if (!sessionAssignment) html += `<p style="text-align: right;">${T('pdfNoReserves')}</p>`;
+                else {
+                    html += `<table><thead><tr><th>${T('pdfProctor2')}</th><th>${T('pdfProctor1')}</th><th>${T('pdfHall')}</th></tr></thead><tbody>`;
+                    for (let i = 1; i <= hallCount; i++) {
+                        const proctors = sessionAssignment.hallAssignments[i] || [];
+                        const proctor1 = proctors[0]?.name || T('unavailable');
+                        const proctor2 = proctors[1]?.name || T('unavailable');
+                        html += `<tr><td style="text-align: right;">${proctor2}</td><td style="text-align: right;">${proctor1}</td><td style="text-align: center;">${T('hall')} ${i}</td></tr>`;
+                    }
+                    html += `</tbody></table>`;
+                    const reservesText = sessionAssignment.reserves.map(t => t.name).join('، ') || T('pdfNoReserves');
+                    html += `<p style="text-align: right; margin-top:12px;"><strong>${T('pdfReserves')}:</strong> ${reservesText}</p>`;
                 }
+
+                pageEl.innerHTML += html;
+                container.appendChild(pageEl);
+                await renderElementToPdf(pageEl, true);
             }
 
-            const head = isRtl
-                ? [[T('pdfProctor2'), T('pdfProctor1'), T('pdfHall')]]
-                : [[T('pdfHall'), T('pdfProctor1'), T('pdfProctor2')]];
-
-            autoTable(doc, {
-                startY: 35,
-                head: head,
-                body: body,
-                theme: 'grid',
-                headStyles: { halign: 'center', font: isRtl ? 'Cairo' : 'helvetica', fontStyle: 'bold' },
-                bodyStyles: { font: isRtl ? 'Cairo' : 'helvetica', halign: isRtl ? 'right' : 'left' },
-                columnStyles: { [isRtl ? 2 : 0]: { halign: 'center' } },
-                styles: {
-                    font: isRtl ? 'Cairo' : 'helvetica'
-                }
+            // Summary page
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'pdf-page';
+            summaryEl.innerHTML = `<h3 style="text-align:center;">${T('pdfSummaryTitle')}</h3>`;
+            let summaryHtml = `<table><thead><tr><th>${T('pdfTeacherName')}</th><th>${T('pdfSessionCount')}</th></tr></thead><tbody>`;
+            const summaryBody = Object.values(result.stats).sort((a, b) => b.count - a.count);
+            summaryBody.forEach(stat => {
+                summaryHtml += `<tr><td style="text-align: right;">${stat.name}</td><td style="text-align: center;">${stat.count}</td></tr>`;
             });
+            summaryHtml += `</tbody></table>`;
+            summaryEl.innerHTML += summaryHtml;
+            container.appendChild(summaryEl);
+            await renderElementToPdf(summaryEl, true);
 
-            const finalY = (doc as any).lastAutoTable.finalY;
-            doc.text(T('pdfReserves'), isRtl ? 200 : 10, finalY + 10, { align: isRtl ? 'right' : 'left' });
-            const reservesText = sessionAssignment.reserves.map(t => t.name).join(isRtl ? '، ' : ', ') || T('pdfNoReserves');
-            doc.text(reservesText, isRtl ? 200 : 10, finalY + 18, { align: isRtl ? 'right' : 'left' });
-        });
+            // Clean up
+            document.body.appendChild(container);
+            // small delay to allow fonts to load
+            await new Promise(res => setTimeout(res, 300));
+            document.body.removeChild(container);
+
+        } else {
+            // Non-RTL (existing flow)
+            // --- Header on first page ---
+            try {
+                doc.addImage(iconDataUrl, 'PNG', isRtl ? 185 : 15, 9, 12, 12);
+            } catch (imgErr) {
+                console.warn('Header image failed to add to PDF, skipping image. Source may be corrupted or cross-origin:', imgErr);
+            }
+            doc.text(T('pdfReportTitle'), 105, 15, { align: 'center' });
+
+            sessions.forEach((session, index) => {
+                if (index > 0) doc.addPage();
+                const sessionTitle = `${T('pdfSessionTitle')} ${session.name} - ${T('sessionSubject')}: ${session.subject}`;
+                doc.text(sessionTitle, isRtl ? 200 : 10, 30, { align: isRtl ? 'right' : 'left' });
+
+                const sessionAssignment = result.assignments[session.id];
+                if (!sessionAssignment) return;
+
+                const body = [];
+                for (let i = 1; i <= hallCount; i++) {
+                    const proctors = sessionAssignment.hallAssignments[i] || [];
+                    const proctor1 = proctors[0]?.name || T('unavailable');
+                    const proctor2 = proctors[1]?.name || T('unavailable');
+                    const hallLabel = `${T('hall')} ${i}`;
+
+                    if (isRtl) {
+                        body.push([proctor2, proctor1, hallLabel]);
+                    } else {
+                        body.push([hallLabel, proctor1, proctor2]);
+                    }
+                }
+
+                const head = isRtl
+                    ? [[T('pdfProctor2'), T('pdfProctor1'), T('pdfHall')]]
+                    : [[T('pdfHall'), T('pdfProctor1'), T('pdfProctor2')]];
+
+                autoTable(doc, {
+                    startY: 35,
+                    head: head,
+                    body: body,
+                    theme: 'grid',
+                    headStyles: { halign: 'center', font: isRtl ? 'Cairo' : 'helvetica', fontStyle: 'bold' },
+                    bodyStyles: { font: isRtl ? 'Cairo' : 'helvetica', halign: isRtl ? 'right' : 'left' },
+                    columnStyles: { [isRtl ? 2 : 0]: { halign: 'center' } },
+                    styles: {
+                        font: isRtl ? 'Cairo' : 'helvetica'
+                    }
+                });
+
+                const finalY = (doc as any).lastAutoTable.finalY;
+                doc.text(T('pdfReserves'), isRtl ? 200 : 10, finalY + 10, { align: isRtl ? 'right' : 'left' });
+                const reservesText = sessionAssignment.reserves.map(t => t.name).join(isRtl ? '، ' : ', ') || T('pdfNoReserves');
+                doc.text(reservesText, isRtl ? 200 : 10, finalY + 18, { align: isRtl ? 'right' : 'left' });
+            });
+        }
 
         // Summary Page
         doc.addPage();
@@ -144,7 +275,11 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
             // Brand Name (always LTR)
             doc.setFont('helvetica', 'normal');
             doc.text('AITLOUTOU', isRtl ? pageWidth - 28 : 20, pageHeight - 10, { align: isRtl ? 'right' : 'left' });
-            doc.addImage(iconDataUrl, 'PNG', isRtl ? pageWidth - 18 : 10, pageHeight - 14.5, 8, 8);
+            try {
+                doc.addImage(iconDataUrl, 'PNG', isRtl ? pageWidth - 18 : 10, pageHeight - 14.5, 8, 8);
+            } catch (imgErr) {
+                console.warn('Footer image failed to add to PDF, skipping image. Source may be corrupted or cross-origin:', imgErr);
+            }
 
             // Developer Name
             doc.setFont(isRtl ? 'Cairo' : 'helvetica', 'normal');
@@ -155,6 +290,7 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
         doc.save(`${T('filePrefix')}.pdf`);
     } catch (error) {
         console.error("Export PDF Error:", error);
+        if (error && (error as any).stack) console.error((error as any).stack);
         alert(T('errorExportingPDF') || "Failed to export PDF. Please try again.");
     }
 };
