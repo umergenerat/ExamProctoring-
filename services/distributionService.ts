@@ -1,4 +1,4 @@
-import type { Teacher, Session, DistributionResult, FullAssignment, TeacherStats } from '../types';
+import type { Teacher, Session, DistributionResult, FullAssignment, TeacherStats, AssignedTeacher } from '../types';
 
 // Interface to track which halls each teacher has been assigned to
 interface TeacherHallHistory {
@@ -38,18 +38,18 @@ export const generateDistribution = (
 
   for (const session of sessions) {
     // Filter teachers who can proctor this session (not their subject, and are available)
-    let availableTeachers = teachers.filter(t => 
-        t.subject.toLowerCase() !== session.subject.toLowerCase() &&
-        !(t.availability || []).includes(session.id)
+    let availableTeachers = teachers.filter(t =>
+      t.subject.toLowerCase() !== session.subject.toLowerCase() &&
+      !(t.availability || []).includes(session.id)
     );
-    
+
     // Further filter by max sessions allowed
     availableTeachers = availableTeachers.filter(t => teacherStats[t.id].count < t.maxSessions);
 
-    const hallAssignments: { [hallNumber: number]: Teacher[] } = {};
+    const hallAssignments: { [hallNumber: number]: AssignedTeacher[] } = {};
 
     for (let i = 1; i <= hallCount; i++) {
-        hallAssignments[i] = [];
+      hallAssignments[i] = [];
     }
 
     // Assign 2 teachers per hall
@@ -62,12 +62,12 @@ export const generateDistribution = (
         // Primary: least assignments first
         const countDiff = teacherStats[a.id].count - teacherStats[b.id].count;
         if (countDiff !== 0) return countDiff;
-        
+
         // Secondary: prefer teachers who haven't been in this hall
         const aHasBeenInHall = teacherHallHistory[a.id].has(hallNum) ? 1 : 0;
         const bHasBeenInHall = teacherHallHistory[b.id].has(hallNum) ? 1 : 0;
         if (aHasBeenInHall !== bHasBeenInHall) return aHasBeenInHall - bHasBeenInHall;
-        
+
         // Tertiary: random for variety
         return Math.random() - 0.5;
       });
@@ -75,18 +75,20 @@ export const generateDistribution = (
       for (let i = 0; i < 2; i++) {
         if (sortedTeachers.length > 0) {
           const teacher = sortedTeachers.shift()!;
-          hallAssignments[hallNum].push(teacher);
+          const isRepeat = teacherHallHistory[teacher.id].has(hallNum);
+
+          hallAssignments[hallNum].push({ ...teacher, isRepeat });
           teacherStats[teacher.id].count++;
-          
+
           // Track that this teacher has been assigned to this hall
           teacherHallHistory[teacher.id].add(hallNum);
-          
+
           // Remove assigned teacher from availableTeachers
           availableTeachers = availableTeachers.filter(t => t.id !== teacher.id);
         }
       }
     }
-    
+
     // Remaining available teachers are reserves
     const reserves = availableTeachers;
 

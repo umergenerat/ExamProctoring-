@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Teacher, Session, DistributionResult, SessionAssignment } from './types';
+import type { Teacher, Session, DistributionResult, SessionAssignment, AssignedTeacher } from './types';
 import { generateDistribution } from './services/distributionService';
 import { getImprovementSuggestions, extractTeachersFromImage } from './services/geminiService';
-import { exportToPDF, exportToCSV } from './services/exportService';
+import { exportToPDF, exportToCSV, exportToExcel } from './services/exportService';
 import { saveToArchive, getArchive, deleteFromArchive, exportArchivedToPDF, type ArchivedDistribution } from './services/archiveService';
 import { translations, t } from './i18n';
 import type { TranslationKeys } from './i18n';
@@ -54,6 +54,8 @@ const LanguageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" he
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
 const ArchiveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
 const ArchiveIconSmall = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
+const FileSpreadsheet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h2" /><path d="M8 17h2" /><path d="M14 13h2" /><path d="M14 17h2" /></svg>;
+const FileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>;
 
 
 // --- Main App Component ---
@@ -82,6 +84,73 @@ export default function App() {
     const [conflictingTeachers, setConflictingTeachers] = useState<{ existing: Teacher; imported: Omit<Teacher, 'id' | 'availability'> }[]>([]);
     const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
     const [pendingNewTeachers, setPendingNewTeachers] = useState<Teacher[]>([]);
+
+    // Assignment Edit State
+    const [assignmentEditConfig, setAssignmentEditConfig] = useState<{
+        sessionId: string;
+        hallNum: number;
+        slotIndex: number;
+        currentTeacher: Teacher | null;
+    } | null>(null);
+
+    const handleEditAssignment = (sessionId: string, hallNum: number, slotIndex: number, currentTeacher: Teacher | undefined) => {
+        setAssignmentEditConfig({ sessionId, hallNum, slotIndex, currentTeacher: currentTeacher || null });
+    };
+
+    const handleAssignmentUpdate = (newTeacher: Teacher) => {
+        if (!assignmentEditConfig || !distributionResult) return;
+        const { sessionId, hallNum, slotIndex } = assignmentEditConfig;
+
+        setDistributionResult(prev => {
+            if (!prev) return null;
+            const newAssignments = { ...prev.assignments };
+            const sessionAssignment = { ...newAssignments[sessionId] };
+            const hallAssignments = { ...sessionAssignment.hallAssignments };
+            const currentHall = [...(hallAssignments[hallNum] || [])];
+
+            // Create the new assigned teacher object. 
+            // We reset isRepeat to false because this is a manual override.
+            const newAssignedTeacher: AssignedTeacher = {
+                ...newTeacher,
+                isRepeat: false
+            };
+
+            // If the hall slot exists, replace it
+            if (slotIndex < currentHall.length) {
+                currentHall[slotIndex] = newAssignedTeacher;
+            } else {
+                // Should not happen usually if clicked on existing, but safety check
+                currentHall.push(newAssignedTeacher);
+            }
+
+            hallAssignments[hallNum] = currentHall;
+            sessionAssignment.hallAssignments = hallAssignments;
+            newAssignments[sessionId] = sessionAssignment;
+
+            // Update stats
+            const newStats = { ...prev.stats };
+            // Decrement old teacher count if exists
+            if (assignmentEditConfig.currentTeacher) {
+                const oldId = assignmentEditConfig.currentTeacher.id;
+                if (newStats[oldId]) {
+                    newStats[oldId] = { ...newStats[oldId], count: Math.max(0, newStats[oldId].count - 1) };
+                }
+            }
+            // Increment new teacher count
+            if (!newStats[newTeacher.id]) {
+                newStats[newTeacher.id] = { name: newTeacher.name, count: 0 };
+            }
+            newStats[newTeacher.id] = { ...newStats[newTeacher.id], count: newStats[newTeacher.id].count + 1 };
+
+            return {
+                ...prev,
+                assignments: newAssignments,
+                stats: newStats
+            };
+        });
+
+        setAssignmentEditConfig(null);
+    };
 
     // Confirmation modal states
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
@@ -372,61 +441,79 @@ export default function App() {
             }
         };
 
-        // Check 1: Per-session eligibility due to subject conflicts.
-        const neededPerSession = hallCount * 2;
-        let problematicSession = null;
-        for (const session of sessions) {
-            const eligibleTeachers = teachers.filter(t => t.subject.toLowerCase() !== session.subject.toLowerCase());
-            if (eligibleTeachers.length < neededPerSession) {
-                problematicSession = {
-                    name: session.name,
-                    eligibleCount: eligibleTeachers.length,
-                    neededCount: neededPerSession,
-                };
-                break; // Found the first problematic session
+        const executeChecksAndGeneration = () => {
+            // Check 1: Per-session eligibility due to subject conflicts.
+            const neededPerSession = hallCount * 2;
+            let problematicSession = null;
+            for (const session of sessions) {
+                const eligibleTeachers = teachers.filter(t => t.subject.toLowerCase() !== session.subject.toLowerCase());
+                if (eligibleTeachers.length < neededPerSession) {
+                    problematicSession = {
+                        name: session.name,
+                        eligibleCount: eligibleTeachers.length,
+                        neededCount: neededPerSession,
+                    };
+                    break; // Found the first problematic session
+                }
             }
-        }
 
-        if (problematicSession) {
-            setConfirmationModalConfig({
-                title: T('warning'),
-                message: T('warningProctorsForSession')
-                    .replace('{sessionName}', problematicSession.name)
-                    .replace('{eligibleCount}', problematicSession.eligibleCount.toString())
-                    .replace('{neededCount}', problematicSession.neededCount.toString()),
-                onConfirm: () => {
-                    setIsConfirmationModalOpen(false);
-                    performGeneration();
-                },
-                confirmText: T('continueAnyway'),
-                confirmButtonClass: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-            });
-            setIsConfirmationModalOpen(true);
-            return;
-        }
+            if (problematicSession) {
+                setConfirmationModalConfig({
+                    title: T('warning'),
+                    message: T('warningProctorsForSession')
+                        .replace('{sessionName}', problematicSession.name)
+                        .replace('{eligibleCount}', problematicSession.eligibleCount.toString())
+                        .replace('{neededCount}', problematicSession.neededCount.toString()),
+                    onConfirm: () => {
+                        setIsConfirmationModalOpen(false);
+                        performGeneration();
+                    },
+                    confirmText: T('continueAnyway'),
+                    confirmButtonClass: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+                });
+                setIsConfirmationModalOpen(true);
+                return;
+            }
 
-        // Check 2: Overall capacity check based on max sessions.
-        const totalSlotsNeeded = sessions.length * hallCount * 2;
-        const totalSlotsAvailable = teachers.reduce((sum, teacher) => sum + teacher.maxSessions, 0);
+            // Check 2: Overall capacity check based on max sessions.
+            const totalSlotsNeeded = sessions.length * hallCount * 2;
+            const totalSlotsAvailable = teachers.reduce((sum, teacher) => sum + teacher.maxSessions, 0);
 
-        if (totalSlotsAvailable < totalSlotsNeeded && totalSlotsNeeded > 0) {
-            setConfirmationModalConfig({
-                title: T('warning'),
-                message: T('warningProctorsOverall')
-                    .replace('{available}', totalSlotsAvailable.toString())
-                    .replace('{needed}', totalSlotsNeeded.toString()),
-                onConfirm: () => {
-                    setIsConfirmationModalOpen(false);
-                    performGeneration();
-                },
-                confirmText: T('continueAnyway'),
-                confirmButtonClass: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-            });
-            setIsConfirmationModalOpen(true);
-        } else {
+            if (totalSlotsAvailable < totalSlotsNeeded) {
+                setConfirmationModalConfig({
+                    title: T('warning'),
+                    message: T('warningProctorsOverall')
+                        .replace('{available}', totalSlotsAvailable.toString())
+                        .replace('{needed}', totalSlotsNeeded.toString()),
+                    onConfirm: () => {
+                        setIsConfirmationModalOpen(false);
+                        performGeneration();
+                    },
+                    confirmText: T('continueAnyway'),
+                    confirmButtonClass: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+                });
+                setIsConfirmationModalOpen(true);
+                return;
+            }
+
             performGeneration();
-        }
+        };
+
+        // Initial Data Review Reminder
+        setConfirmationModalConfig({
+            title: T('confirmGenerateTitle'),
+            message: T('confirmGenerateMessage'),
+            onConfirm: () => {
+                setIsConfirmationModalOpen(false);
+                executeChecksAndGeneration();
+            },
+            confirmText: T('continueAnyway'),
+            confirmButtonClass: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500',
+        });
+        setIsConfirmationModalOpen(true);
     };
+
+
 
     const handleExportPDF = async () => {
         if (!distributionResult) return;
@@ -623,13 +710,33 @@ export default function App() {
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                                                {Object.entries(assignment.hallAssignments).map(([hallNum, proctors]) => (
-                                                                    <tr key={hallNum}>
-                                                                        <td className="px-6 py-4 whitespace-nowrap font-medium">{T('hall')} {hallNum}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap">{proctors[0]?.name || '---'}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap">{proctors[1]?.name || '---'}</td>
-                                                                    </tr>
-                                                                ))}
+                                                                {Object.entries(assignment.hallAssignments).map(([hallNum, proctors]) => {
+                                                                    const hallNumber = parseInt(hallNum);
+                                                                    const hasRepeat = proctors.some(p => p.isRepeat);
+                                                                    return (
+                                                                        <tr key={hallNum}>
+                                                                            <td className={`px-6 py-4 whitespace-nowrap font-medium ${hasRepeat ? 'text-red-600 font-bold' : ''}`}>
+                                                                                {T('hall')} {hallNum}
+                                                                            </td>
+                                                                            {/* Proctor 1 */}
+                                                                            <td
+                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[0] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : ''}`}
+                                                                                onClick={() => handleEditAssignment(sessionId, hallNumber, 0, proctors[0])}
+                                                                                title={T('clickToEdit')}
+                                                                            >
+                                                                                {proctors[0]?.name || <span className="text-gray-400">---</span>}
+                                                                            </td>
+                                                                            {/* Proctor 2 */}
+                                                                            <td
+                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[1] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : ''}`}
+                                                                                onClick={() => handleEditAssignment(sessionId, hallNumber, 1, proctors[1])}
+                                                                                title={T('clickToEdit')}
+                                                                            >
+                                                                                {proctors[1]?.name || <span className="text-gray-400">---</span>}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
                                                             </tbody>
                                                         </table>
                                                     </div>
@@ -693,8 +800,11 @@ export default function App() {
                                             </>
                                         )}
                                     </button>
-                                    <button onClick={() => exportToCSV(distributionResult, sessions, hallCount, T)} className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex items-center justify-center transition-colors">
-                                        <FileDownIcon /> {T('exportCSV')}
+                                    <button onClick={() => exportToExcel(distributionResult, sessions, hallCount, T)} className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex items-center justify-center transition-colors">
+                                        <FileSpreadsheet /> {T('exportExcel')}
+                                    </button>
+                                    <button onClick={() => exportToCSV(distributionResult, sessions, hallCount, T)} className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center justify-center transition-colors">
+                                        <FileText /> {T('exportCSV')}
                                     </button>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -712,6 +822,16 @@ export default function App() {
                 {T('appDeveloper')}
             </footer>
 
+            {assignmentEditConfig && distributionResult && (
+                <AssignmentEditModal
+                    teachers={teachers}
+                    sessionAssignment={distributionResult.assignments[assignmentEditConfig.sessionId]}
+                    currentTeacher={assignmentEditConfig.currentTeacher}
+                    onSave={handleAssignmentUpdate}
+                    onClose={() => setAssignmentEditConfig(null)}
+                    T={T}
+                />
+            )}
             {isSettingsModalOpen && <SettingsModal onClose={() => setIsSettingsModalOpen(false)} T={T} />}
             {isTeacherModalOpen && <TeacherModal teacher={currentTeacher} sessions={sessions} onSave={handleSaveTeacher} onClose={() => setIsTeacherModalOpen(false)} T={T} />}
             {isSessionModalOpen && <SessionModal session={currentSession} subjects={uniqueSubjects} onSave={handleSaveSession} onClose={() => setIsSessionModalOpen(false)} T={T} />}
@@ -1448,6 +1568,88 @@ const SaveArchiveModal: React.FC<SaveArchiveModalProps> = ({ distributionResult,
                             </div>
                         </>
                     )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Assignment Edit Modal ---
+interface AssignmentEditModalProps {
+    teachers: Teacher[];
+    sessionAssignment: SessionAssignment;
+    currentTeacher: Teacher | null;
+    onSave: (teacher: Teacher) => void;
+    onClose: () => void;
+    T: (key: TranslationKeys) => string;
+}
+
+const AssignmentEditModal: React.FC<AssignmentEditModalProps> = ({ teachers, sessionAssignment, currentTeacher, onSave, onClose, T }) => {
+    const [search, setSearch] = useState('');
+
+    const getTeacherStatus = (teacherId: string) => {
+        // Check if in reserves
+        if (sessionAssignment.reserves.find(t => t.id === teacherId)) return { label: T('activeMapReserve'), color: 'text-green-600', isAvailable: true };
+
+        // Check if assigned in another hall
+        for (const [hallNum, proctors] of Object.entries(sessionAssignment.hallAssignments) as [string, Teacher[]][]) {
+            if (proctors.some(p => p.id === teacherId)) return { label: `${T('hall')} ${hallNum}`, color: 'text-orange-600', isAvailable: false };
+        }
+
+        return { label: T('unavailable'), color: 'text-gray-400', isAvailable: false };
+    };
+
+    const filteredTeachers = teachers.filter(t =>
+        t.name.toLowerCase().includes(search.toLowerCase()) &&
+        t.id !== currentTeacher?.id
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[80vh]">
+                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-xl font-semibold">{T('editAssignment')}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+                </div>
+
+                <div className="p-4 border-b dark:border-gray-700">
+                    <input
+                        type="text"
+                        placeholder={T('searchTeacher')}
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2"
+                    />
+                </div>
+
+                <div className="p-2 overflow-y-auto flex-1">
+                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {filteredTeachers.map(teacher => {
+                            const status = getTeacherStatus(teacher.id);
+                            return (
+                                <li key={teacher.id}>
+                                    <button
+                                        onClick={() => onSave(teacher)}
+                                        className="w-full text-start p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors flex justify-between items-center"
+                                    >
+                                        <div>
+                                            <p className="font-semibold">{teacher.name}</p>
+                                            <p className="text-xs text-gray-500">{teacher.subject}</p>
+                                        </div>
+                                        <span className={`text-xs font-medium ${status.color}`}>
+                                            {status.label}
+                                        </span>
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+
+                <div className="p-4 border-t dark:border-gray-700">
+                    <button onClick={onClose} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                        {T('close')}
+                    </button>
                 </div>
             </div>
         </div>

@@ -14,8 +14,12 @@ export interface Session {
   subject: string;
 }
 
+export interface AssignedTeacher extends Teacher {
+  isRepeat: boolean;
+}
+
 export interface HallAssignment {
-  [hallNumber: number]: Teacher[];
+  [hallNumber: number]: AssignedTeacher[];
 }
 
 export interface SessionAssignment {

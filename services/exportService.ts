@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import type { DistributionResult, Session, Teacher } from '../types';
+import * as XLSX from 'xlsx';
+import type { DistributionResult, Session, Teacher, AssignedTeacher } from '../types';
 import type { TFunction } from '../i18n';
 
 // Base64 encoded PNG for the app icon (use a minimal known-good PNG to avoid decode issues)
@@ -322,4 +323,77 @@ export const exportToCSV = (result: DistributionResult, sessions: Session[], hal
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+};
+
+export const exportToExcel = (result: DistributionResult, sessions: Session[], hallCount: number, T: TFunction) => {
+    // 1. Prepare data for the main sheet (Distribution)
+    // Structure: Session Name | Subject | Hall 1 (P1, P2) | Hall 2 (P1, P2) ... | Reserves
+
+    // Create headers
+    const headers = [T('sessionSubject'), T('sessionCount')]; // Fallback, we'll construct dynamic headers
+    const dynamicHeaders = [T('csvSession'), T('csvSubject')];
+    for (let i = 1; i <= hallCount; i++) {
+        dynamicHeaders.push(`${T('hall')} ${i} - ${T('proctor1')}`);
+        dynamicHeaders.push(`${T('hall')} ${i} - ${T('proctor2')}`);
+    }
+    dynamicHeaders.push(T('csvReserves'));
+
+    const distributionData: any[] = [];
+    distributionData.push(dynamicHeaders);
+
+    sessions.forEach(session => {
+        const sessionAssignment = result.assignments[session.id];
+        if (!sessionAssignment) return;
+
+        const row: any[] = [session.name, session.subject];
+
+        for (let i = 1; i <= hallCount; i++) {
+            const proctors = sessionAssignment.hallAssignments[i] || [];
+            const proctor1 = proctors[0]?.name || T('none');
+            const proctor2 = proctors[1]?.name || T('none');
+            row.push(proctor1);
+            row.push(proctor2);
+        }
+
+        const reserves = sessionAssignment.reserves.map(t => t.name).join(', ') || T('none');
+        row.push(reserves);
+
+        distributionData.push(row);
+    });
+
+    // 2. Prepare data for the stats sheet
+    const statsHeaders = [T('teacher'), T('sessionCount')];
+    const statsData: any[] = [statsHeaders];
+
+    Object.values(result.stats)
+        .sort((a, b) => b.count - a.count)
+        .forEach(stat => {
+            statsData.push([stat.name, stat.count]);
+        });
+
+
+    // 3. Create Workbook and Sheets
+    const wb = XLSX.utils.book_new();
+
+    // Distribution Sheet
+    const wsDist = XLSX.utils.aoa_to_sheet(distributionData);
+
+    // Auto-width for distribution sheet
+    const wscolsDist = dynamicHeaders.map(() => ({ wch: 20 }));
+    wscolsDist[0] = { wch: 30 }; // Session name wider
+    wscolsDist[1] = { wch: 20 }; // Subject
+    wscolsDist[wscolsDist.length - 1] = { wch: 50 }; // Reserves wider
+    wsDist['!cols'] = wscolsDist;
+
+    XLSX.utils.book_append_sheet(wb, wsDist, "Distribution");
+
+    // Stats Sheet
+    const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+    const wscolsStats = [{ wch: 30 }, { wch: 15 }];
+    wsStats['!cols'] = wscolsStats;
+
+    XLSX.utils.book_append_sheet(wb, wsStats, "Stats");
+
+    // 4. Save file
+    XLSX.writeFile(wb, `${T('filePrefix')}.xlsx`);
 };

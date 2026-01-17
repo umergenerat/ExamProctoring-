@@ -58,6 +58,10 @@ export const translations = {
     newSessions: 'الحصص الجديدة',
     currentNotes: 'ملاحظات حالية',
     newNotes: 'ملاحظات جديدة',
+    activeMapReserve: 'متوفر (احتياط)',
+    editAssignment: 'تعديل التعيين',
+    searchTeacher: 'بحث عن أستاذ',
+    clickToEdit: 'اضغط للتعديل',
 
     // --- Results View ---
     readyToStart: 'جاهز لبدء التوزيع',
@@ -91,6 +95,7 @@ export const translations = {
     exportPDF: 'تصدير PDF',
     errorExportingPDF: 'حدث خطأ أثناء تصدير PDF. يرجى المحاولة مرة أخرى.',
     exportCSV: 'تصدير CSV',
+    exportExcel: 'تصدير Excel',
     exporting: 'جاري التصدير...',
     filePrefix: 'توزيع_الحراسة',
 
@@ -138,6 +143,8 @@ export const translations = {
     warningProctorsForSession: `بالنسبة للحصة "{sessionName}"، لا يوجد عدد كافٍ من الأساتذة المؤهلين بسبب تعارض المواد. المتوفر: {eligibleCount}، المطلوب: {neededCount}. سيؤدي هذا إلى قاعات فارغة في هذه الحصة. هل تريد المتابعة على أي حال؟`,
     warningProctorsOverall: `إجمالي الحصص المتاحة من الأساتذة ({available}) أقل من المطلوب ({needed}). قد ينتج عن هذا قاعات فارغة. هل تريد المتابعة؟`,
     continueAnyway: 'متابعة',
+    confirmGenerateTitle: 'تذكير بمراجعة البيانات',
+    confirmGenerateMessage: 'يرجى التأكد من مراجعة بيانات الأساتذة والحصص. يمكنك تعديل أو حذف أي بيانات أولية قبل البدء في التوزيع. هل تريد المتابعة؟',
 
     // --- PDF Export ---
     pdfReportTitle: 'تقرير توزيع مهام حراسة الامتحانات',
@@ -258,6 +265,10 @@ export const translations = {
     newSessions: 'New Sessions',
     currentNotes: 'Current Notes',
     newNotes: 'New Notes',
+    activeMapReserve: 'Available (Reserve)',
+    editAssignment: 'Edit Assignment',
+    searchTeacher: 'Search Teacher',
+    clickToEdit: 'Click to Edit',
 
     // --- Results View ---
     readyToStart: 'Ready to Start Distribution',
@@ -291,6 +302,7 @@ export const translations = {
     exportPDF: 'Export PDF',
     errorExportingPDF: 'Failed to export PDF. Please try again.',
     exportCSV: 'Export CSV',
+    exportExcel: 'Export Excel',
     exporting: 'Exporting...',
     filePrefix: 'Proctoring_Distribution',
 
@@ -338,6 +350,8 @@ export const translations = {
     warningProctorsForSession: `For session "{sessionName}", there are not enough eligible teachers due to subject conflicts. Available: {eligibleCount}, Needed: {neededCount}. This will result in empty halls for this session. Do you want to proceed anyway?`,
     warningProctorsOverall: `The total available sessions from teachers ({available}) is less than the required amount ({needed}). This may result in empty halls. Do you want to continue?`,
     continueAnyway: 'Continue Anyway',
+    confirmGenerateTitle: 'Data Review Reminder',
+    confirmGenerateMessage: 'Please ensure you have reviewed the teacher and session data. You can edit or remove any initial data before generating the distribution. Do you want to proceed?',
 
     // --- PDF Export ---
     pdfReportTitle: 'Exam Proctoring Duty Distribution Report',
@@ -458,6 +472,10 @@ Ensure the output is only valid JSON and nothing else.`,
     newSessions: 'Nouvelles Sessions',
     currentNotes: 'Notes Actuelles',
     newNotes: 'Nouvelles Notes',
+    activeMapReserve: 'Disponible (Réserve)',
+    editAssignment: 'Modifier l\'affectation',
+    searchTeacher: 'Rechercher un enseignant',
+    clickToEdit: 'Cliquer pour modifier',
 
     // --- Results View ---
     readyToStart: 'Prêt à Démarrer la Répartition',
@@ -491,6 +509,7 @@ Ensure the output is only valid JSON and nothing else.`,
     exportPDF: 'Exporter en PDF',
     errorExportingPDF: 'Échec de l\'exportation PDF. Veuillez réessayer.',
     exportCSV: 'Exporter en CSV',
+    exportExcel: 'Exporter en Excel',
     exporting: 'Exportation...',
     filePrefix: 'Repartition_Surveillance',
 
@@ -538,6 +557,8 @@ Ensure the output is only valid JSON and nothing else.`,
     warningProctorsForSession: `Pour la session "{sessionName}", il n'y a pas assez d'enseignants éligibles en raison de conflits de matières. Disponible : {eligibleCount}, Requis : {neededCount}. Cela entraînera des salles vides pour cette session. Voulez-vous continuer quand même ?`,
     warningProctorsOverall: `Le nombre total de sessions disponibles des enseignants ({available}) est inférieur au nombre requis ({needed}). Cela peut entraîner des salles vides. Voulez-vous continuer ?`,
     continueAnyway: 'Continuer quand même',
+    confirmGenerateTitle: 'Rappel de Révision des Données',
+    confirmGenerateMessage: 'Veuillez vous assurer d\'avoir vérifié les données des enseignants et des sessions. Vous pouvez modifier ou supprimer toute donnée initiale avant de générer la répartition. Voulez-vous continuer ?',
 
     // --- PDF Export ---
     pdfReportTitle: 'Rapport de Répartition des Tâches de Surveillance',
