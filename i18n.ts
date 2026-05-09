@@ -21,6 +21,9 @@ export const translations = {
     manageTeachers: 'إدارة الأساتذة',
     addTeacher: 'إضافة أستاذ',
     maxSessionsSuffix: 'حصص كحد أقصى',
+    teacherName: 'اسم الأستاذ',
+    teacherSubject: 'المادة',
+    strictnessLevel: 'مستوى الصرامة والتجربة (1-5)',
 
     // --- Session Management ---
     examsSchedule: 'برنامج الامتحانات',
@@ -228,6 +231,9 @@ export const translations = {
     manageTeachers: 'Manage Teachers',
     addTeacher: 'Add Teacher',
     maxSessionsSuffix: 'max sessions',
+    teacherName: 'Teacher Name',
+    teacherSubject: 'Subject',
+    strictnessLevel: 'Strictness/Experience Level (1-5)',
 
     // --- Session Management ---
     examsSchedule: 'Exams Schedule',
@@ -435,6 +441,9 @@ Ensure the output is only valid JSON and nothing else.`,
     manageTeachers: 'Gérer les Enseignants',
     addTeacher: 'Ajouter un Enseignant',
     maxSessionsSuffix: 'sessions max',
+    teacherName: 'Nom de l\'Enseignant',
+    teacherSubject: 'Matière',
+    strictnessLevel: 'Niveau de Rigueur/Expérience (1-5)',
 
     // --- Session Management ---
     examsSchedule: 'Calendrier des Examens',

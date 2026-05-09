@@ -1,4 +1,3 @@
-
 export interface Teacher {
   id: string;
   name: string;
@@ -6,6 +5,7 @@ export interface Teacher {
   maxSessions: number;
   notes: string;
   availability: string[];
+  strictness: number; // 1 (lenient) to 5 (very strict)
 }
 
 export interface Session {

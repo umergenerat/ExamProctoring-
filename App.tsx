@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import type { Teacher, Session, DistributionResult, SessionAssignment, AssignedTeacher } from './types';
 import { generateDistribution } from './services/distributionService';
 import { getImprovementSuggestions, extractTeachersFromImage } from './services/geminiService';
-import { exportToPDF, exportToCSV, exportToExcel } from './services/exportService';
+import { exportToPDF, exportToCSV, exportToExcel, downloadTeacherExcelTemplate } from './services/exportService';
 import { saveToArchive, getArchive, deleteFromArchive, exportArchivedToPDF, type ArchivedDistribution } from './services/archiveService';
 import { translations, t } from './i18n';
 import type { TranslationKeys } from './i18n';
@@ -12,14 +13,14 @@ import type { TranslationKeys } from './i18n';
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const initialTeachers: Teacher[] = [
-    { id: generateId(), name: 'أحمد ', subject: 'الرياضيات', maxSessions: 4, notes: 'خبير', availability: [] },
-    { id: generateId(), name: 'فاطمة الزهراء', subject: 'اللغة العربية', maxSessions: 5, notes: '', availability: [] },
-    { id: generateId(), name: 'يوسف ', subject: 'الفيزياء', maxSessions: 4, notes: '', availability: [] },
-    { id: generateId(), name: 'خديجة ', subject: 'علوم الحياة والأرض', maxSessions: 5, notes: 'إعفاء جزئي', availability: [] },
-    { id: generateId(), name: 'محمد ', subject: 'اللغة الفرنسية', maxSessions: 3, notes: '', availability: [] },
-    { id: generateId(), name: 'عائشة ', subject: 'التاريخ والجغرافيا', maxSessions: 5, notes: '', availability: [] },
-    { id: generateId(), name: 'علي ', subject: 'التربية الإسلامية', maxSessions: 4, notes: '', availability: [] },
-    { id: generateId(), name: 'مريم ', subject: 'اللغة الإنجليزية', maxSessions: 5, notes: '', availability: [] },
+    { id: generateId(), name: 'أحمد ', subject: 'الرياضيات', maxSessions: 4, strictness: 4, notes: 'خبير', availability: [] },
+    { id: generateId(), name: 'فاطمة الزهراء', subject: 'اللغة العربية', maxSessions: 5, strictness: 2, notes: '', availability: [] },
+    { id: generateId(), name: 'يوسف ', subject: 'الفيزياء', maxSessions: 4, strictness: 3, notes: '', availability: [] },
+    { id: generateId(), name: 'خديجة ', subject: 'علوم الحياة والأرض', maxSessions: 5, strictness: 5, notes: 'إعفاء جزئي', availability: [] },
+    { id: generateId(), name: 'محمد ', subject: 'اللغة الفرنسية', maxSessions: 3, strictness: 3, notes: '', availability: [] },
+    { id: generateId(), name: 'عائشة ', subject: 'التاريخ والجغرافيا', maxSessions: 5, strictness: 3, notes: '', availability: [] },
+    { id: generateId(), name: 'علي ', subject: 'التربية الإسلامية', maxSessions: 4, strictness: 4, notes: '', availability: [] },
+    { id: generateId(), name: 'مريم ', subject: 'اللغة الإنجليزية', maxSessions: 5, strictness: 3, notes: '', availability: [] },
 ];
 
 const initialSessions: Session[] = [
@@ -273,7 +274,7 @@ export default function App() {
 
     // --- CRUD Handlers for Teachers ---
     const handleAddTeacher = () => {
-        setCurrentTeacher({ id: '', name: '', subject: '', maxSessions: 4, notes: '', availability: [] });
+        setCurrentTeacher({ id: '', name: '', subject: '', maxSessions: 4, strictness: 3, notes: '', availability: [] });
         setIsTeacherModalOpen(true);
     };
 
@@ -350,14 +351,31 @@ export default function App() {
 
         try {
             let parsedTeachers: Omit<Teacher, 'id' | 'availability'>[] = [];
-            if (file.type === 'text/csv') {
+            if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                parsedTeachers = rows.slice(1).map(row => {
+                    return {
+                        name: row[0]?.toString().trim() || '',
+                        subject: row[1]?.toString().trim() || '',
+                        maxSessions: parseInt(row[2]) || 4,
+                        strictness: parseInt(row[3]) || 3,
+                        notes: row[4]?.toString().trim() || ''
+                    };
+                }).filter(t => t.name);
+            } else if (file.type === 'text/csv') {
                 const text = await file.text();
                 parsedTeachers = text.split('\n').slice(1).map(row => {
-                    const [name, subject, maxSessions, notes] = row.split(',');
+                    const [name, subject, maxSessions, strictness, notes] = row.split(',');
                     return {
                         name: name?.trim(),
                         subject: subject?.trim(),
                         maxSessions: parseInt(maxSessions?.trim()) || 4,
+                        strictness: parseInt(strictness?.trim()) || 3,
                         notes: notes?.trim() || ''
                     };
                 }).filter(t => t.name);
@@ -656,13 +674,18 @@ export default function App() {
                                 type="file"
                                 id="file-upload"
                                 className="hidden"
-                                accept=".csv,image/png,image/jpeg"
+                                accept=".csv,image/png,image/jpeg,.xlsx,.xls"
                                 onChange={handleFileImport}
                                 disabled={isImporting}
                             />
-                            <label htmlFor="file-upload" className={`w-full cursor-pointer bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                {isImporting ? T('importing') : T('chooseFile')}
-                            </label>
+                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                                <label htmlFor="file-upload" className={`w-full cursor-pointer bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                    {isImporting ? T('importing') : T('chooseFile')}
+                                </label>
+                                <button onClick={() => downloadTeacherExcelTemplate(T)} className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/40 flex items-center justify-center transition-colors text-sm font-medium">
+                                    {language === 'ar' ? 'تحميل نموذج Excel' : (language === 'fr' ? 'Modèle Excel' : 'Excel Template')}
+                                </button>
+                            </div>
                             {importError && <p className="text-red-500 text-xs mt-2">{importError}</p>}
                         </div>
                     </Card>
@@ -1173,11 +1196,11 @@ interface TeacherModalProps {
     T: (key: TranslationKeys) => string;
 }
 const TeacherModal: React.FC<TeacherModalProps> = ({ teacher, sessions, onSave, onClose, T }) => {
-    const [formData, setFormData] = useState<Teacher>(teacher || { id: '', name: '', subject: '', maxSessions: 4, notes: '', availability: [] });
+    const [formData, setFormData] = useState<Teacher>(teacher || { id: '', name: '', subject: '', maxSessions: 4, strictness: 3, notes: '', availability: [] });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'maxSessions' ? parseInt(value) : value }));
+        setFormData(prev => ({ ...prev, [name]: (name === 'maxSessions' || name === 'strictness') ? parseInt(value) || 1 : value }));
     };
 
     const handleAvailabilityChange = (sessionId: string) => {
@@ -1210,6 +1233,10 @@ const TeacherModal: React.FC<TeacherModalProps> = ({ teacher, sessions, onSave, 
                 <div>
                     <label className="block text-sm font-medium">{T('maxSessions')}</label>
                     <input type="number" name="maxSessions" value={formData.maxSessions} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium">{T('strictnessLevel') || 'مستوى الصرامة/التجربة (1-5)'}</label>
+                    <input type="number" name="strictness" value={formData.strictness} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" max="5" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium">{T('notes')}</label>

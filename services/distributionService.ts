@@ -54,25 +54,31 @@ export const generateDistribution = (
 
     // Assign 2 teachers per hall
     for (let hallNum = 1; hallNum <= hallCount; hallNum++) {
-      // Sort available teachers by:
-      // 1. Least assignment count (prioritize those with fewer sessions)
-      // 2. Whether they have NOT been in this hall before (prioritize new halls)
-      // Note: We use a pre-shuffled array to ensure deterministic tie-breaking.
-      const shuffledAvailable = shuffleArray([...availableTeachers]);
-      const sortedTeachers = shuffledAvailable.sort((a, b) => {
-        // Primary: least assignments first
-        const countDiff = teacherStats[a.id].count - teacherStats[b.id].count;
-        if (countDiff !== 0) return countDiff;
-
-        // Secondary: prefer teachers who haven't been in this hall
-        const aHasBeenInHall = teacherHallHistory[a.id].has(hallNum) ? 1 : 0;
-        const bHasBeenInHall = teacherHallHistory[b.id].has(hallNum) ? 1 : 0;
-        return aHasBeenInHall - bHasBeenInHall;
-      });
-
       for (let i = 0; i < 2; i++) {
+        const firstTeacher = i === 1 && hallAssignments[hallNum].length > 0 ? hallAssignments[hallNum][0] : null;
+
+        const shuffledAvailable = shuffleArray([...availableTeachers]);
+        const sortedTeachers = shuffledAvailable.sort((a, b) => {
+          // Primary: least assignments first
+          const countDiff = teacherStats[a.id].count - teacherStats[b.id].count;
+          if (countDiff !== 0) return countDiff;
+
+          // Secondary (for 2nd proctor): Balance strictness
+          if (firstTeacher) {
+            const idealStrictness = 6 - (firstTeacher.strictness || 3);
+            const aDiff = Math.abs((a.strictness || 3) - idealStrictness);
+            const bDiff = Math.abs((b.strictness || 3) - idealStrictness);
+            if (aDiff !== bDiff) return aDiff - bDiff;
+          }
+
+          // Tertiary: prefer teachers who haven't been in this hall
+          const aHasBeenInHall = teacherHallHistory[a.id].has(hallNum) ? 1 : 0;
+          const bHasBeenInHall = teacherHallHistory[b.id].has(hallNum) ? 1 : 0;
+          return aHasBeenInHall - bHasBeenInHall;
+        });
+
         if (sortedTeachers.length > 0) {
-          const teacher = sortedTeachers.shift()!;
+          const teacher = sortedTeachers[0];
           const isRepeat = teacherHallHistory[teacher.id].has(hallNum);
 
           hallAssignments[hallNum].push({ ...teacher, isRepeat });

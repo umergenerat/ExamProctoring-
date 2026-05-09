@@ -397,3 +397,34 @@ export const exportToExcel = (result: DistributionResult, sessions: Session[], h
     // 4. Save file
     XLSX.writeFile(wb, `${T('filePrefix')}.xlsx`);
 };
+
+export const downloadTeacherExcelTemplate = (T: TFunction) => {
+    const headers = [
+        T('teacherName') || 'الاسم',
+        T('teacherSubject') || 'المادة',
+        T('maxSessions') || 'أقصى عدد للحصص',
+        T('strictnessLevel') || 'مستوى الصرامة والتجربة (1-5)',
+        T('notes') || 'ملاحظات'
+    ];
+
+    const data = [
+        headers,
+        ['أحمد', 'الرياضيات', 4, 4, 'خبير'],
+        ['فاطمة', 'اللغة العربية', 5, 2, '']
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    const wscols = [
+        { wch: 30 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 30 },
+        { wch: 40 }
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Teachers_Template");
+    XLSX.writeFile(wb, `Teachers_Template.xlsx`);
+};
