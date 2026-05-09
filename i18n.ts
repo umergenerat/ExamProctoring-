@@ -28,6 +28,7 @@ export const translations = {
     // --- Session Management ---
     examsSchedule: 'برنامج الامتحانات',
     addSession: 'إضافة حصة',
+    sessionName: 'اسم الحصة',
     sessionSubject: 'المادة',
     hallCountLabel: 'عدد القاعات',
 
@@ -45,6 +46,8 @@ export const translations = {
     importSuccess: 'اكتمل الاستيراد. تم تحديث {updated} أساتذة وإضافة {added} أساتذة جدد.',
     importSuccessNoConflict: 'تم استيراد {count} أساتذة بنجاح.',
     importNoNewTeachers: 'لم يتم العثور على أساتذة جدد لاستيرادهم أو جميعهم موجودون بالفعل.',
+    importSessions: 'استيراد برنامج الحصص',
+    importSessionsHelp: 'استورد من ملف CSV أو صورة لجدول (PNG, JPG).',
 
     // --- Conflict Modal ---
     importConflictTitle: 'معالجة تكرار الأسماء',
@@ -92,6 +95,7 @@ export const translations = {
     geminiApiKey: 'مفتاح Gemini API',
     apiKeyPlaceholder: 'أدخل مفتاحك هنا',
     settingsSaved: 'تم الحفظ بنجاح!',
+    getApiKeyLink: 'الحصول على مفتاح API من Google AI Studio',
 
     // --- Export ---
     exportReports: 'تصدير التقارير',
@@ -208,6 +212,12 @@ export const translations = {
     geminiSchemaSubject: "المادة التي يدرسها",
     geminiSchemaMaxSessions: "الحد الأقصى للحصص",
     geminiSchemaNotes: "أي ملاحظات إضافية",
+    geminiSessionImageExtractionPrompt: `
+قم بتحليل الصورة المرفقة، والتي تحتوي على جدول ببيانات الحصص الامتحانية. استخرج البيانات لكل حصة وأرجعها كـ JSON array.
+يجب أن يحتوي كل object في الـ array على الحقول التالية: 'name' (اسم الحصة/الفترة), 'subject' (المادة).
+تأكد من أن الإخراج هو JSON صالح فقط ولا شيء غيره.`,
+    geminiSessionSchemaName: "اسم الحصة أو تاريخها/فترتها",
+    geminiSessionSchemaSubject: "المادة الممتحنة",
   },
   en: {
     appTitle: 'Exam Proctoring Duty Distributor',
@@ -238,6 +248,7 @@ export const translations = {
     // --- Session Management ---
     examsSchedule: 'Exams Schedule',
     addSession: 'Add Session',
+    sessionName: 'Session Name',
     sessionSubject: 'Subject',
     hallCountLabel: 'Number of Halls',
 
@@ -255,6 +266,8 @@ export const translations = {
     importSuccess: 'Import complete. Updated {updated} teachers and added {added} new teachers.',
     importSuccessNoConflict: 'Successfully imported {count} teachers.',
     importNoNewTeachers: 'No new teachers were found to import, or they all already exist.',
+    importSessions: 'Import Sessions Schedule',
+    importSessionsHelp: 'Import from a CSV file or an image of a table (PNG, JPG).',
 
     // --- Conflict Modal ---
     importConflictTitle: 'Handle Name Duplicates',
@@ -302,6 +315,7 @@ export const translations = {
     geminiApiKey: 'Gemini API Key',
     apiKeyPlaceholder: 'Enter your key here',
     settingsSaved: 'Saved successfully!',
+    getApiKeyLink: 'Get an API key from Google AI Studio',
 
     // --- Export ---
     exportReports: 'Export Reports',
@@ -418,6 +432,12 @@ Ensure the output is only valid JSON and nothing else.`,
     geminiSchemaSubject: "The subject they teach",
     geminiSchemaMaxSessions: "The maximum number of sessions",
     geminiSchemaNotes: "Any additional notes",
+    geminiSessionImageExtractionPrompt: `
+Analyze the attached image, which contains a table of exam sessions data. Extract the data for each session and return it as a JSON array.
+Each object in the array must contain the following fields: 'name' (Session Name/Period), 'subject' (Subject).
+Ensure the output is only valid JSON and nothing else.`,
+    geminiSessionSchemaName: "Session name or date/period",
+    geminiSessionSchemaSubject: "Examined subject",
   },
   fr: {
     appTitle: 'Distributeur de Tâches de Surveillance d\'Examen',
@@ -448,6 +468,7 @@ Ensure the output is only valid JSON and nothing else.`,
     // --- Session Management ---
     examsSchedule: 'Calendrier des Examens',
     addSession: 'Ajouter une Session',
+    sessionName: 'Nom de la Session',
     sessionSubject: 'Matière',
     hallCountLabel: 'Nombre de Salles',
 
@@ -465,6 +486,8 @@ Ensure the output is only valid JSON and nothing else.`,
     importSuccess: 'Importation terminée. {updated} enseignants mis à jour et {added} nouveaux enseignants ajoutés.',
     importSuccessNoConflict: '{count} enseignants importés avec succès.',
     importNoNewTeachers: 'Aucun nouvel enseignant trouvé à importer, ou ils existent tous déjà.',
+    importSessions: 'Importer le programme des sessions',
+    importSessionsHelp: 'Importer depuis un fichier CSV ou une image d\'un tableau (PNG, JPG).',
 
     // --- Conflict Modal ---
     importConflictTitle: 'Gérer les Doublons de Noms',
@@ -512,6 +535,7 @@ Ensure the output is only valid JSON and nothing else.`,
     geminiApiKey: 'Clé API Gemini',
     apiKeyPlaceholder: 'Entrez votre clé ici',
     settingsSaved: 'Enregistré avec succès !',
+    getApiKeyLink: 'Obtenir une clé API depuis Google AI Studio',
 
     // --- Export ---
     exportReports: 'Exporter les Rapports',
@@ -628,6 +652,12 @@ Assurez-vous que la sortie est uniquement du JSON valide et rien d'autre.`,
     geminiSchemaSubject: "La matière qu'il enseigne",
     geminiSchemaMaxSessions: "Le nombre maximum de sessions",
     geminiSchemaNotes: "Toutes notes supplémentaires",
+    geminiSessionImageExtractionPrompt: `
+Analysez l'image ci-jointe, qui contient un tableau de données sur les sessions d'examen. Extrayez les données pour chaque session et retournez-les sous forme de tableau JSON.
+Chaque objet du tableau doit contenir les champs suivants : 'name' (Nom/Période de la session), 'subject' (Matière).
+Assurez-vous que la sortie est uniquement du JSON valide et rien d'autre.`,
+    geminiSessionSchemaName: "Nom de la session ou date/période",
+    geminiSessionSchemaSubject: "Matière examinée",
   },
 };
 

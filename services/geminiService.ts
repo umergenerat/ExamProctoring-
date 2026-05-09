@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Teacher, TeacherStats } from '../types';
+import type { Teacher, TeacherStats, Session } from '../types';
 import { translations } from '../i18n';
 
 const getApiKey = (): string => {
@@ -101,6 +101,7 @@ export const extractTeachersFromImage = async (base64Image: string, mimeType: st
           name: item.name || '',
           subject: item.subject || '',
           maxSessions: typeof item.maxSessions === 'number' ? item.maxSessions : 4,
+          strictness: typeof item.strictness === 'number' ? item.strictness : 3,
           notes: item.notes || '',
       }));
 
@@ -113,3 +114,59 @@ export const extractTeachersFromImage = async (base64Image: string, mimeType: st
       throw error;
   }
 };
+
+export const extractSessionsFromImage = async (base64Image: string, mimeType: string, lang: 'ar' | 'en' | 'fr'): Promise<Omit<Session, 'id'>[]> => {
+    try {
+        const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  
+        const prompt = translations[lang].geminiSessionImageExtractionPrompt;
+  
+        const imagePart = {
+            inlineData: {
+                data: base64Image,
+                mimeType: mimeType,
+            },
+        };
+  
+        const textPart = { text: prompt };
+  
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [imagePart, textPart] },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING, description: translations[lang].geminiSessionSchemaName },
+                            subject: { type: Type.STRING, description: translations[lang].geminiSessionSchemaSubject }
+                        },
+                         required: ["name", "subject"]
+                    }
+                }
+            }
+        });
+        
+        const jsonText = response.text.trim();
+        const parsedData = JSON.parse(jsonText);
+  
+        if (!Array.isArray(parsedData)) {
+            throw new Error("AI response is not an array.");
+        }
+  
+        return parsedData.map(item => ({
+            name: item.name || '',
+            subject: item.subject || ''
+        }));
+  
+    } catch (error) {
+        console.error("Error extracting sessions from image via Gemini API:", error);
+        if (error instanceof SyntaxError) {
+             throw new Error(translations[lang].importErrorAIParse);
+        }
+        // Re-throw the original error for the UI to handle API key issues.
+        throw error;
+    }
+  };

@@ -428,3 +428,28 @@ export const downloadTeacherExcelTemplate = (T: TFunction) => {
     XLSX.utils.book_append_sheet(wb, ws, "Teachers_Template");
     XLSX.writeFile(wb, `Teachers_Template.xlsx`);
 };
+
+export const downloadSessionExcelTemplate = (T: TFunction) => {
+    const headers = [
+        T('sessionName') || 'اسم الحصة أو الفترة',
+        T('sessionSubject') || 'المادة'
+    ];
+
+    const data = [
+        headers,
+        ['الفترة الصباحية', 'الرياضيات'],
+        ['الفترة المسائية', 'اللغة العربية']
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    const wscols = [
+        { wch: 30 },
+        { wch: 20 }
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Sessions_Template");
+    XLSX.writeFile(wb, `Sessions_Template.xlsx`);
+};

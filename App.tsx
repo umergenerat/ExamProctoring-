@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import type { Teacher, Session, DistributionResult, SessionAssignment, AssignedTeacher } from './types';
 import { generateDistribution } from './services/distributionService';
-import { getImprovementSuggestions, extractTeachersFromImage } from './services/geminiService';
-import { exportToPDF, exportToCSV, exportToExcel, downloadTeacherExcelTemplate } from './services/exportService';
+import { getImprovementSuggestions, extractTeachersFromImage, extractSessionsFromImage } from './services/geminiService';
+import { exportToPDF, exportToCSV, exportToExcel, downloadTeacherExcelTemplate, downloadSessionExcelTemplate } from './services/exportService';
 import { saveToArchive, getArchive, deleteFromArchive, exportArchivedToPDF, type ArchivedDistribution } from './services/archiveService';
 import { translations, t } from './i18n';
 import type { TranslationKeys } from './i18n';
@@ -58,6 +58,7 @@ const ArchiveIconSmall = () => <svg xmlns="http://www.w3.org/2000/svg" width="24
 const FileSpreadsheet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h2" /><path d="M8 17h2" /><path d="M14 13h2" /><path d="M14 17h2" /></svg>;
 const FileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>;
 const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+const ExternalLinkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>;
 
 // --- Main App Component ---
 export default function App() {
@@ -82,6 +83,8 @@ export default function App() {
     // Import states
     const [isImporting, setIsImporting] = useState(false);
     const [importError, setImportError] = useState('');
+    const [isImportingSessions, setIsImportingSessions] = useState(false);
+    const [sessionImportError, setSessionImportError] = useState('');
     const [conflictingTeachers, setConflictingTeachers] = useState<{ existing: Teacher; imported: Omit<Teacher, 'id' | 'availability'> }[]>([]);
     const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
     const [pendingNewTeachers, setPendingNewTeachers] = useState<Teacher[]>([]);
@@ -436,6 +439,72 @@ export default function App() {
         }
     };
 
+    // --- Session File Import Handler ---
+    const handleSessionFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsImportingSessions(true);
+        setSessionImportError('');
+
+        try {
+            let parsedSessions: Omit<Session, 'id'>[] = [];
+            if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                
+                parsedSessions = rows.slice(1).map(row => {
+                    return {
+                        name: row[0]?.toString().trim() || '',
+                        subject: row[1]?.toString().trim() || ''
+                    };
+                }).filter(s => s.name);
+            } else if (file.type === 'text/csv') {
+                const text = await file.text();
+                parsedSessions = text.split('\n').slice(1).map(row => {
+                    // Consider CSV parsing could be tricky with commas in content
+                    const [name, subject] = row.split(',');
+                    return {
+                        name: name?.trim() || '',
+                        subject: subject?.trim() || ''
+                    };
+                }).filter(s => s.name);
+            } else if (file.type.startsWith('image/')) {
+                const blobToBase64 = (blob: Blob): Promise<string> =>
+                    new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+
+                const base64Image = await blobToBase64(file);
+                parsedSessions = await extractSessionsFromImage(base64Image, file.type, language);
+            } else {
+                throw new Error(T('importErrorUnsupportedFile'));
+            }
+
+            const sessionsToAdd = parsedSessions.map(s => ({ ...s, id: generateId() }));
+            
+            if (sessionsToAdd.length > 0) {
+                setSessions(prev => [...prev, ...sessionsToAdd]);
+                alert(T('importSuccessNoConflict').replace('{count}', sessionsToAdd.length.toString()));
+            } else {
+                alert(T('importErrorGeneric'));
+            }
+
+        } catch (error: any) {
+            console.error("Session Import failed:", error);
+            setSessionImportError(error.message || T('aiError'));
+        } finally {
+            setIsImportingSessions(false);
+            e.target.value = ''; // Reset file input
+        }
+    };
+
     // --- CRUD Handlers for Sessions ---
     const handleAddSession = () => {
         setCurrentSession({ id: '', name: '', subject: '' });
@@ -715,6 +784,32 @@ export default function App() {
                         <div className="mt-4">
                             <label htmlFor="hallCount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center"><HomeIcon /> {T('hallCountLabel')}</label>
                             <input type="number" id="hallCount" value={hallCount} onChange={e => setHallCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-center font-bold text-lg p-2" />
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                                <UploadCloudIcon />
+                                {T('importSessions')}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                {T('importSessionsHelp')}
+                            </p>
+                            <input
+                                type="file"
+                                id="session-file-upload"
+                                className="hidden"
+                                accept=".csv,image/png,image/jpeg,.xlsx,.xls"
+                                onChange={handleSessionFileImport}
+                                disabled={isImportingSessions}
+                            />
+                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                                <label htmlFor="session-file-upload" className={`w-full cursor-pointer bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors ${isImportingSessions ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                    {isImportingSessions ? T('importing') : T('chooseFile')}
+                                </label>
+                                <button onClick={() => downloadSessionExcelTemplate(T)} className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/40 flex items-center justify-center transition-colors text-sm font-medium">
+                                    {language === 'ar' ? 'تحميل نموذج Excel' : (language === 'fr' ? 'Modèle Excel' : 'Excel Template')}
+                                </button>
+                            </div>
+                            {sessionImportError && <p className="text-red-500 text-xs mt-2">{sessionImportError}</p>}
                         </div>
                     </Card>
 
@@ -1173,6 +1268,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, T }) => {
                         className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2"
                         placeholder={T('apiKeyPlaceholder')}
                     />
+                    <div className="mt-2 text-sm text-end">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 underline inline-flex items-center gap-1 transition-colors">
+                            {T('getApiKeyLink')} <ExternalLinkIcon />
+                        </a>
+                    </div>
                 </div>
                 <div className="pt-4 flex justify-between items-center">
                     <span className={`text-sm text-green-600 dark:text-green-400 transition-opacity duration-300 ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
