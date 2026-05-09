@@ -57,8 +57,9 @@ export const generateDistribution = (
       // Sort available teachers by:
       // 1. Least assignment count (prioritize those with fewer sessions)
       // 2. Whether they have NOT been in this hall before (prioritize new halls)
-      // 3. Add randomness among equal candidates
-      const sortedTeachers = [...availableTeachers].sort((a, b) => {
+      // Note: We use a pre-shuffled array to ensure deterministic tie-breaking.
+      const shuffledAvailable = shuffleArray([...availableTeachers]);
+      const sortedTeachers = shuffledAvailable.sort((a, b) => {
         // Primary: least assignments first
         const countDiff = teacherStats[a.id].count - teacherStats[b.id].count;
         if (countDiff !== 0) return countDiff;
@@ -66,10 +67,7 @@ export const generateDistribution = (
         // Secondary: prefer teachers who haven't been in this hall
         const aHasBeenInHall = teacherHallHistory[a.id].has(hallNum) ? 1 : 0;
         const bHasBeenInHall = teacherHallHistory[b.id].has(hallNum) ? 1 : 0;
-        if (aHasBeenInHall !== bHasBeenInHall) return aHasBeenInHall - bHasBeenInHall;
-
-        // Tertiary: random for variety
-        return Math.random() - 0.5;
+        return aHasBeenInHall - bHasBeenInHall;
       });
 
       for (let i = 0; i < 2; i++) {

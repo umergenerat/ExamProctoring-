@@ -56,7 +56,7 @@ const ArchiveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" hei
 const ArchiveIconSmall = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
 const FileSpreadsheet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h2" /><path d="M8 17h2" /><path d="M14 13h2" /><path d="M14 17h2" /></svg>;
 const FileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>;
-
+const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
 
 // --- Main App Component ---
 export default function App() {
@@ -175,6 +175,10 @@ export default function App() {
     // Export state
     const [isExporting, setIsExporting] = useState(false);
 
+    // PWA Install state
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isInstallable, setIsInstallable] = useState(false);
+
     // Theme and Language states
     const [language, setLanguage] = useState<'ar' | 'en' | 'fr'>(() => (localStorage.getItem('language') as 'ar' | 'en' | 'fr') || 'ar');
     const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('theme') as 'light' | 'dark') || 'light');
@@ -226,6 +230,33 @@ export default function App() {
         }
         setIsCheckingAuth(false);
     }, []);
+
+    // --- PWA Installation Effect ---
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            setIsInstallable(true);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setIsInstallable(false);
+        }
+
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+            setIsInstallable(false);
+        }
+    };
 
     // --- Authentication handlers ---
     const handleAuthSuccess = () => {
@@ -563,6 +594,11 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
                         <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">{currentUser}</span>
+                        {isInstallable && (
+                            <button onClick={handleInstallClick} className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 sm:py-2 sm:px-3 rounded-md flex items-center justify-center transition-colors text-sm shadow-sm" title={language === 'ar' ? "تثبيت التطبيق" : (language === 'fr' ? "Installer l'application" : "Install App")}>
+                                <DownloadIcon /> <span className='hidden sm:inline mx-1'>{language === 'ar' ? "تثبيت" : (language === 'fr' ? "Installer" : "Install")}</span>
+                            </button>
+                        )}
                         <button onClick={() => setIsArchiveModalOpen(true)} title={T('viewArchive')} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                             <ArchiveIcon />
                         </button>
