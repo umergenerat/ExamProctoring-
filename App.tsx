@@ -24,10 +24,10 @@ const initialTeachers: Teacher[] = [
 ];
 
 const initialSessions: Session[] = [
-    { id: generateId(), name: 'اليوم 1 - الفترة الصباحية - الحصة 1', subject: 'الرياضيات' },
-    { id: generateId(), name: 'اليوم 1 - الفترة الصباحية - الحصة 2', subject: 'اللغة العربية' },
-    { id: generateId(), name: 'اليوم 1 - الفترة المسائية - الحصة 1', subject: 'الفيزياء' },
-    { id: generateId(), name: 'اليوم 2 - الفترة الصباحية - الحصة 1', subject: 'اللغة الفرنسية' },
+    { id: generateId(), name: 'اليوم 1 - الفترة الصباحية - الحصة 1', day: 'اليوم 1', period: 'صباحية', slot: 'الحصة 1', subject: 'الرياضيات' },
+    { id: generateId(), name: 'اليوم 1 - الفترة الصباحية - الحصة 2', day: 'اليوم 1', period: 'صباحية', slot: 'الحصة 2', subject: 'اللغة العربية' },
+    { id: generateId(), name: 'اليوم 1 - الفترة المسائية - الحصة 1', day: 'اليوم 1', period: 'مسائية', slot: 'الحصة 1', subject: 'الفيزياء' },
+    { id: generateId(), name: 'اليوم 2 - الفترة الصباحية - الحصة 1', day: 'اليوم 2', period: 'صباحية', slot: 'الحصة 1', subject: 'اللغة الفرنسية' },
 ];
 
 
@@ -457,21 +457,36 @@ export default function App() {
                 const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
                 
                 parsedSessions = rows.slice(1).map(row => {
+                    const sessionName = row[0]?.toString().trim() || '';
+                    const day = row[1]?.toString().trim() || '';
+                    const period = row[2]?.toString().trim() || '';
+                    const slot = row[3]?.toString().trim() || '';
+                    const subject = row[4]?.toString().trim() || '';
+
+                    // Construct combined name if individual parts exist
+                    const combinedName = day && period && slot ? `${day} - ${period} - ${slot}` : sessionName;
+
                     return {
-                        name: row[0]?.toString().trim() || '',
-                        subject: row[1]?.toString().trim() || ''
+                        name: combinedName || sessionName,
+                        day: day,
+                        period: period,
+                        slot: slot,
+                        subject: subject
                     };
-                }).filter(s => s.name);
+                }).filter(s => s.name || s.subject);
             } else if (file.type === 'text/csv') {
                 const text = await file.text();
                 parsedSessions = text.split('\n').slice(1).map(row => {
-                    // Consider CSV parsing could be tricky with commas in content
-                    const [name, subject] = row.split(',');
+                    const [sessionName, day, period, slot, subject] = row.split(',').map(s => s?.trim() || '');
+                    const combinedName = day && period && slot ? `${day} - ${period} - ${slot}` : sessionName;
                     return {
-                        name: name?.trim() || '',
-                        subject: subject?.trim() || ''
+                        name: combinedName || sessionName,
+                        day: day,
+                        period: period,
+                        slot: slot,
+                        subject: subject
                     };
-                }).filter(s => s.name);
+                }).filter(s => s.name || s.subject);
             } else if (file.type.startsWith('image/')) {
                 const blobToBase64 = (blob: Blob): Promise<string> =>
                     new Promise((resolve, reject) => {
@@ -507,7 +522,7 @@ export default function App() {
 
     // --- CRUD Handlers for Sessions ---
     const handleAddSession = () => {
-        setCurrentSession({ id: '', name: '', subject: '' });
+        setCurrentSession({ id: '', name: '', day: '', period: '', slot: '', subject: '' });
         setIsSessionModalOpen(true);
     };
 
@@ -1432,6 +1447,9 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, subjects, onSave, 
             onSave({
                 id: session?.id || '',
                 name: combinedName,
+                day: day,
+                period: period,
+                slot: slot,
                 subject: subject
             });
         }

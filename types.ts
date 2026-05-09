@@ -11,6 +11,9 @@ export interface Teacher {
 export interface Session {
   id: string;
   name: string;
+  day: string;
+  period: 'morning' | 'evening' | string;
+  slot: string;
   subject: string;
 }
 

@@ -141,6 +141,9 @@ export const extractSessionsFromImage = async (base64Image: string, mimeType: st
                         type: Type.OBJECT,
                         properties: {
                             name: { type: Type.STRING, description: translations[lang].geminiSessionSchemaName },
+                            day: { type: Type.STRING, description: (translations[lang] as any).geminiSessionSchemaDay },
+                            period: { type: Type.STRING, description: (translations[lang] as any).geminiSessionSchemaPeriod },
+                            slot: { type: Type.STRING, description: (translations[lang] as any).geminiSessionSchemaSlot },
                             subject: { type: Type.STRING, description: translations[lang].geminiSessionSchemaSubject }
                         },
                          required: ["name", "subject"]
@@ -158,6 +161,9 @@ export const extractSessionsFromImage = async (base64Image: string, mimeType: st
   
         return parsedData.map(item => ({
             name: item.name || '',
+            day: item.day || '',
+            period: item.period || '',
+            slot: item.slot || '',
             subject: item.subject || ''
         }));
   

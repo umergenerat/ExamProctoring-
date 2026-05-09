@@ -431,14 +431,17 @@ export const downloadTeacherExcelTemplate = (T: TFunction) => {
 
 export const downloadSessionExcelTemplate = (T: TFunction) => {
     const headers = [
-        T('sessionName') || 'اسم الحصة أو الفترة',
+        T('sessionName') || 'وصف الحصة',
+        T('day') || 'اليوم',
+        T('period') || 'الفترة',
+        T('slot') || 'الحصة',
         T('sessionSubject') || 'المادة'
     ];
 
     const data = [
         headers,
-        ['الفترة الصباحية', 'الرياضيات'],
-        ['الفترة المسائية', 'اللغة العربية']
+        ['اختبار الرياضيات', 'الإثنين 12 مايو', 'صباحية', 'الحصة الأولى', 'الرياضيات'],
+        ['اختبار العربية', 'الإثنين 12 مايو', 'صباحية', 'الحصة الثانية', 'اللغة العربية']
     ];
 
     const wb = XLSX.utils.book_new();
@@ -446,6 +449,9 @@ export const downloadSessionExcelTemplate = (T: TFunction) => {
     
     const wscols = [
         { wch: 30 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 15 },
         { wch: 20 }
     ];
     ws['!cols'] = wscols;

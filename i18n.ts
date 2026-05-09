@@ -214,9 +214,13 @@ export const translations = {
     geminiSchemaNotes: "أي ملاحظات إضافية",
     geminiSessionImageExtractionPrompt: `
 قم بتحليل الصورة المرفقة، والتي تحتوي على جدول ببيانات الحصص الامتحانية. استخرج البيانات لكل حصة وأرجعها كـ JSON array.
-يجب أن يحتوي كل object في الـ array على الحقول التالية: 'name' (اسم الحصة/الفترة), 'subject' (المادة).
+يجب أن يحتوي كل object في الـ array على الحقول التالية: 'name' (وصف الحصة)، 'day' (اليوم)، 'period' (الفترة)، 'slot' (الحصة)، 'subject' (المادة).
+إذا كان الحقل غير موجود، استخدم قيمة افتراضية مناسبة.
 تأكد من أن الإخراج هو JSON صالح فقط ولا شيء غيره.`,
-    geminiSessionSchemaName: "اسم الحصة أو تاريخها/فترتها",
+    geminiSessionSchemaName: "وصف عام للحصة",
+    geminiSessionSchemaDay: "يوم أو تاريخ الامتحان",
+    geminiSessionSchemaPeriod: "صباحية أو مسائية",
+    geminiSessionSchemaSlot: "رقم الحصة أو ترتيبها",
     geminiSessionSchemaSubject: "المادة الممتحنة",
   },
   en: {
@@ -434,9 +438,13 @@ Ensure the output is only valid JSON and nothing else.`,
     geminiSchemaNotes: "Any additional notes",
     geminiSessionImageExtractionPrompt: `
 Analyze the attached image, which contains a table of exam sessions data. Extract the data for each session and return it as a JSON array.
-Each object in the array must contain the following fields: 'name' (Session Name/Period), 'subject' (Subject).
+Each object in the array must contain the following fields: 'name' (description), 'day', 'period', 'slot', 'subject'.
+If a field is missing, use an appropriate default value.
 Ensure the output is only valid JSON and nothing else.`,
-    geminiSessionSchemaName: "Session name or date/period",
+    geminiSessionSchemaName: "General session description",
+    geminiSessionSchemaDay: "Day/Date of the exam",
+    geminiSessionSchemaPeriod: "Morning or Evening",
+    geminiSessionSchemaSlot: "Session slot (e.g., Session 1)",
     geminiSessionSchemaSubject: "Examined subject",
   },
   fr: {
@@ -654,9 +662,13 @@ Assurez-vous que la sortie est uniquement du JSON valide et rien d'autre.`,
     geminiSchemaNotes: "Toutes notes supplémentaires",
     geminiSessionImageExtractionPrompt: `
 Analysez l'image ci-jointe, qui contient un tableau de données sur les sessions d'examen. Extrayez les données pour chaque session et retournez-les sous forme de tableau JSON.
-Chaque objet du tableau doit contenir les champs suivants : 'name' (Nom/Période de la session), 'subject' (Matière).
+Chaque objet du tableau doit contenir les champs suivants : 'name' (description), 'day' (jour), 'period' (période), 'slot' (séance), 'subject' (matière).
+Si un champ est manquant, utilisez une valeur par défaut appropriée.
 Assurez-vous que la sortie est uniquement du JSON valide et rien d'autre.`,
-    geminiSessionSchemaName: "Nom de la session ou date/période",
+    geminiSessionSchemaName: "Description générale de la session",
+    geminiSessionSchemaDay: "Jour/Date de l'examen",
+    geminiSessionSchemaPeriod: "Matin ou Après-midi",
+    geminiSessionSchemaSlot: "Créneau de la session (ex: Séance 1)",
     geminiSessionSchemaSubject: "Matière examinée",
   },
 };
