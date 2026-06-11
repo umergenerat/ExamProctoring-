@@ -19,6 +19,7 @@ export interface Session {
 
 export interface AssignedTeacher extends Teacher {
   isRepeat: boolean;
+  isSubjectConflict?: boolean;
 }
 
 export interface HallAssignment {

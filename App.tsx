@@ -114,9 +114,12 @@ export default function App() {
 
             // Create the new assigned teacher object. 
             // We reset isRepeat to false because this is a manual override.
+            const session = sessionMap[sessionId];
+            const isSubjectConflict = session ? newTeacher.subject.trim().toLowerCase() === session.subject.trim().toLowerCase() : false;
             const newAssignedTeacher: AssignedTeacher = {
                 ...newTeacher,
-                isRepeat: false
+                isRepeat: false,
+                isSubjectConflict
             };
 
             // If the hall slot exists, replace it
@@ -736,8 +739,8 @@ export default function App() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">{t.subject} - {t.maxSessions} {T('maxSessionsSuffix')}</p>
                                         </div>
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEditTeacher(t)} className="p-1"><EditIcon /></button>
-                                            <button onClick={() => handleDeleteTeacher(t.id)} className="p-1"><TrashIcon /></button>
+                                            <button onClick={() => handleEditTeacher(t)} className="p-1" title={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')} aria-label={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')}><EditIcon /></button>
+                                            <button onClick={() => handleDeleteTeacher(t.id)} className="p-1" title={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')} aria-label={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')}><TrashIcon /></button>
                                         </div>
                                     </li>
                                 ))}
@@ -786,8 +789,8 @@ export default function App() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">{T('sessionSubject')}: {s.subject}</p>
                                         </div>
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEditSession(s)} className="p-1"><EditIcon /></button>
-                                            <button onClick={() => handleDeleteSession(s.id)} className="p-1"><TrashIcon /></button>
+                                            <button onClick={() => handleEditSession(s)} className="p-1" title={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')} aria-label={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')}><EditIcon /></button>
+                                            <button onClick={() => handleDeleteSession(s.id)} className="p-1" title={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')} aria-label={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')}><TrashIcon /></button>
                                         </div>
                                     </li>
                                 ))}
@@ -881,27 +884,50 @@ export default function App() {
                                                             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                                                                 {Object.entries(assignment.hallAssignments).map(([hallNum, proctors]) => {
                                                                     const hallNumber = parseInt(hallNum);
-                                                                    const hasRepeat = proctors.some(p => p.isRepeat);
                                                                     return (
                                                                         <tr key={hallNum}>
-                                                                            <td className={`px-6 py-4 whitespace-nowrap font-medium ${hasRepeat ? 'text-red-600 font-bold' : ''}`}>
+                                                                            <td className="px-6 py-4 whitespace-nowrap font-medium">
                                                                                 {T('hall')} {hallNum}
                                                                             </td>
                                                                             {/* Proctor 1 */}
                                                                             <td
-                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[0] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : ''}`}
+                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[0] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : (proctors[0] as AssignedTeacher)?.isSubjectConflict ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}
                                                                                 onClick={() => handleEditAssignment(sessionId, hallNumber, 0, proctors[0])}
                                                                                 title={T('clickToEdit')}
                                                                             >
-                                                                                {proctors[0]?.name || <span className="text-gray-400">---</span>}
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span>{proctors[0]?.name || <span className="text-gray-400">---</span>}</span>
+                                                                                    {proctors[0]?.isSubjectConflict && (
+                                                                                        <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20" title={language === 'ar' ? 'حراسة نفس المادة المدرسّة' : (language === 'fr' ? 'Surveillance de sa propre matière' : 'Guarding own subject')}>
+                                                                                            {language === 'ar' ? 'المادة' : (language === 'fr' ? 'Matière' : 'Subject')}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {proctors[0]?.isRepeat && (
+                                                                                        <span className="inline-flex items-center rounded-md bg-red-50 dark:bg-red-950/40 px-2 py-0.5 text-xs font-semibold text-red-800 dark:text-red-300 ring-1 ring-inset ring-red-600/20" title={language === 'ar' ? 'تكرار القاعة' : (language === 'fr' ? 'Salle répétée' : 'Repeated Hall')}>
+                                                                                            {language === 'ar' ? 'تكرار' : (language === 'fr' ? 'Répété' : 'Repeat')}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </td>
                                                                             {/* Proctor 2 */}
                                                                             <td
-                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[1] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : ''}`}
+                                                                                className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[1] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : (proctors[1] as AssignedTeacher)?.isSubjectConflict ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}
                                                                                 onClick={() => handleEditAssignment(sessionId, hallNumber, 1, proctors[1])}
                                                                                 title={T('clickToEdit')}
                                                                             >
-                                                                                {proctors[1]?.name || <span className="text-gray-400">---</span>}
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span>{proctors[1]?.name || <span className="text-gray-400">---</span>}</span>
+                                                                                    {proctors[1]?.isSubjectConflict && (
+                                                                                        <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300 ring-1 ring-inset ring-amber-600/20" title={language === 'ar' ? 'حراسة نفس المادة المدرسّة' : (language === 'fr' ? 'Surveillance de sa propre matière' : 'Guarding own subject')}>
+                                                                                            {language === 'ar' ? 'المادة' : (language === 'fr' ? 'Matière' : 'Subject')}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {proctors[1]?.isRepeat && (
+                                                                                        <span className="inline-flex items-center rounded-md bg-red-50 dark:bg-red-950/40 px-2 py-0.5 text-xs font-semibold text-red-800 dark:text-red-300 ring-1 ring-inset ring-red-600/20" title={language === 'ar' ? 'تكرار القاعة' : (language === 'fr' ? 'Salle répétée' : 'Repeated Hall')}>
+                                                                                            {language === 'ar' ? 'تكرار' : (language === 'fr' ? 'Répété' : 'Repeat')}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </td>
                                                                         </tr>
                                                                     );
@@ -1338,24 +1364,24 @@ const TeacherModal: React.FC<TeacherModalProps> = ({ teacher, sessions, onSave, 
         <Modal title={teacher?.id ? T('modalEditTeacher') : T('modalAddTeacher')} onClose={onClose}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium">{T('fullName')}</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
+                    <label htmlFor="teacher-name" className="block text-sm font-medium">{T('fullName')}</label>
+                    <input id="teacher-name" type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('subjectTaught')}</label>
-                    <input type="text" name="subject" value={formData.subject} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
+                    <label htmlFor="teacher-subject" className="block text-sm font-medium">{T('subjectTaught')}</label>
+                    <input id="teacher-subject" type="text" name="subject" value={formData.subject} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('maxSessions')}</label>
-                    <input type="number" name="maxSessions" value={formData.maxSessions} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" />
+                    <label htmlFor="teacher-max-sessions" className="block text-sm font-medium">{T('maxSessions')}</label>
+                    <input id="teacher-max-sessions" type="number" name="maxSessions" value={formData.maxSessions} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('strictnessLevel') || 'مستوى الصرامة/التجربة (1-5)'}</label>
-                    <input type="number" name="strictness" value={formData.strictness} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" max="5" />
+                    <label htmlFor="teacher-strictness" className="block text-sm font-medium">{T('strictnessLevel') || 'مستوى الصرامة/التجربة (1-5)'}</label>
+                    <input id="teacher-strictness" type="number" name="strictness" value={formData.strictness} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" max="5" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('notes')}</label>
-                    <textarea name="notes" value={formData.notes} onChange={handleChange} rows={2} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    <label htmlFor="teacher-notes" className="block text-sm font-medium">{T('notes')}</label>
+                    <textarea id="teacher-notes" name="notes" value={formData.notes} onChange={handleChange} rows={2} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                 </div>
                 <div>
                     <label className="block text-sm font-medium">{T('availabilityHelp')}</label>
@@ -1461,26 +1487,27 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, subjects, onSave, 
         <Modal title={session?.id ? T('modalEditSession') : T('modalAddSession')} onClose={onClose}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium">{T('day')}</label>
-                    <select value={day} onChange={e => setDay(e.target.value)} className={commonSelectClass}>
+                    <label htmlFor="session-day" className="block text-sm font-medium">{T('day')}</label>
+                    <select id="session-day" value={day} onChange={e => setDay(e.target.value)} className={commonSelectClass}>
                         {days.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('period')}</label>
-                    <select value={period} onChange={e => setPeriod(e.target.value)} className={commonSelectClass}>
+                    <label htmlFor="session-period" className="block text-sm font-medium">{T('period')}</label>
+                    <select id="session-period" value={period} onChange={e => setPeriod(e.target.value)} className={commonSelectClass}>
                         {periods.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('slot')}</label>
-                    <select value={slot} onChange={e => setSlot(e.target.value)} className={commonSelectClass}>
+                    <label htmlFor="session-slot" className="block text-sm font-medium">{T('slot')}</label>
+                    <select id="session-slot" value={slot} onChange={e => setSlot(e.target.value)} className={commonSelectClass}>
                         {slots.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium">{T('subjectProgrammed')}</label>
+                    <label htmlFor="session-subject" className="block text-sm font-medium">{T('subjectProgrammed')}</label>
                     <select
+                        id="session-subject"
                         value={subject}
                         onChange={e => setSubject(e.target.value)}
                         className={commonSelectClass}
