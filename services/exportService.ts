@@ -130,6 +130,9 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
             `;
             container.appendChild(style);
 
+            // Append container to document body before rendering
+            document.body.appendChild(container);
+
             // Header page
             const headerPage = document.createElement('div');
             headerPage.className = 'pdf-page';
@@ -180,7 +183,6 @@ export const exportToPDF = async (result: DistributionResult, sessions: Session[
             await renderElementToPdf(summaryEl, true);
 
             // Clean up
-            document.body.appendChild(container);
             // small delay to allow fonts to load
             await new Promise(res => setTimeout(res, 300));
             document.body.removeChild(container);
