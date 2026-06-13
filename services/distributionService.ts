@@ -37,6 +37,9 @@ const runSingleTrial = (
     hallAssignmentCount[h] = 0;
   }
 
+  // Track teachers from the immediately preceding session to avoid consecutive assignments (soft penalty)
+  let previousSessionTeachers = new Set<string>();
+
   for (const session of sessions) {
     // Filter available teachers (physically available)
     let availableTeachers = teachers.filter(t =>
@@ -71,13 +74,13 @@ const runSingleTrial = (
           // 1. Count penalty (equalizing sessions)
           const countPenalty = teacherStats[t.id].count * 15;
 
-          // 2. Hall repetition penalty
+          // 2. Hall repetition penalty (strict constraint: avoid repeating same hall)
           const hasBeenInHall = teacherHallHistory[t.id].has(hallNum);
-          const repetitionPenalty = hasBeenInHall ? 500 : 0;
+          const repetitionPenalty = hasBeenInHall ? 500000 : 0;
 
-          // 3. Subject conflict penalty (soft constraint: avoid guarding own subject)
+          // 3. Subject conflict penalty (strict constraint: avoid guarding own subject)
           const isSubjectConflict = t.subject.trim().toLowerCase() === session.subject.trim().toLowerCase();
-          const subjectConflictPenalty = isSubjectConflict ? 2000 : 0;
+          const subjectConflictPenalty = isSubjectConflict ? 100000 : 0;
 
           // 4. Strictness pairing penalty (if second slot)
           let pairingPenalty = 0;
@@ -92,7 +95,10 @@ const runSingleTrial = (
           const newAvg = (currentSum + (t.strictness || 3)) / (currentCount + 1);
           const hallStrictnessPenalty = Math.abs(newAvg - globalAvgStrictness) * 50;
 
-          const totalScore = countPenalty + repetitionPenalty + subjectConflictPenalty + pairingPenalty + hallStrictnessPenalty;
+          // 6. Consecutive session penalty (soft constraint to prevent fatigue while ensuring reserves)
+          const consecutivePenalty = previousSessionTeachers.has(t.id) ? 300 : 0;
+
+          const totalScore = countPenalty + repetitionPenalty + subjectConflictPenalty + pairingPenalty + hallStrictnessPenalty + consecutivePenalty;
 
           return { teacher: t, score: totalScore, isSubjectConflict };
         });
@@ -135,6 +141,12 @@ const runSingleTrial = (
       hallAssignments,
       reserves,
     };
+
+    // Update previous session teachers for the next iteration
+    previousSessionTeachers = new Set<string>();
+    for (let hallNum = 1; hallNum <= hallCount; hallNum++) {
+      hallAssignments[hallNum].forEach(t => previousSessionTeachers.add(t.id));
+    }
   }
 
   return { assignments, stats: teacherStats };
@@ -183,7 +195,7 @@ const calculateFitnessScore = (
       }
     }
   }
-  score += totalRepetitions * 10000;
+  score += totalRepetitions * 500000;
 
   // 3. Subject Conflicts Count
   let totalSubjectConflicts = 0;
@@ -200,7 +212,7 @@ const calculateFitnessScore = (
       }
     }
   }
-  score += totalSubjectConflicts * 5000;
+  score += totalSubjectConflicts * 500000;
 
   // 4. Hall Strictness Variance
   const hallStrictnessSums: { [hallNum: number]: number } = {};
@@ -255,6 +267,27 @@ const calculateFitnessScore = (
   if (pairingCount > 0) {
     score += (pairingDeviationSum / pairingCount) * 100;
   }
+
+  // 6. Consecutive Sessions Count
+  let totalConsecutive = 0;
+  let prevSessionTeachers = new Set<string>();
+  for (const session of sessions) {
+    const sessionAssign = result.assignments[session.id];
+    if (!sessionAssign) continue;
+
+    let currentSessionTeachers = new Set<string>();
+    for (let hallNum = 1; hallNum <= hallCount; hallNum++) {
+      const assigned = sessionAssign.hallAssignments[hallNum] || [];
+      for (const t of assigned) {
+        currentSessionTeachers.add(t.id);
+        if (prevSessionTeachers.has(t.id)) {
+            totalConsecutive++;
+        }
+      }
+    }
+    prevSessionTeachers = currentSessionTeachers;
+  }
+  score += totalConsecutive * 5000;
 
   return score;
 };

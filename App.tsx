@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import * as XLSX from 'xlsx';
 import type { Teacher, Session, DistributionResult, SessionAssignment, AssignedTeacher } from './types';
 import { generateDistribution } from './services/distributionService';
@@ -31,34 +31,17 @@ const initialSessions: Session[] = [
 ];
 
 
-// --- SVG Icons ---
-const AppIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-indigo-600">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-        <path d="m9 12 2 2 4-4"></path>
-    </svg>
-);
-const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
-const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>;
-const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
-const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 me-3"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
-const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 me-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
-const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 me-3"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
-const BrainCircuitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mx-2"><path d="M12 2a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Z" /><path d="M20 12h-2a2.5 2.5 0 0 1-2.5-2.5V8" /><path d="M4 12h2a2.5 2.5 0 0 0 2.5-2.5V8" /><path d="M12 12v2a2.5 2.5 0 0 0 2.5 2.5h0a2.5 2.5 0 0 1 2.5 2.5V20" /><path d="M12 12v2a2.5 2.5 0 0 1-2.5 2.5h0a2.5 2.5 0 0 0-2.5 2.5V20" /></svg>;
-const FileDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6" /><path d="m15 15-3 3-3-3" /></svg>;
-const UploadCloudIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 me-2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" /><path d="M12 12v9" /><path d="m16 16-4-4-4 4" /></svg>;
-const WarningIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-red-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
-const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mx-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>;
-const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>;
-const LanguageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m5 8 6 6" /><path d="m4 14 6-6 2-3" /><path d="M2 5h12" /><path d="M7 2h1" /><path d="m22 22-5-10-5 10" /><path d="M14 18h6" /></svg>;
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
-const ArchiveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
-const ArchiveIconSmall = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><rect width="20" height="5" x="2" y="3" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></svg>;
-const FileSpreadsheet = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h2" /><path d="M8 17h2" /><path d="M14 13h2" /><path d="M14 17h2" /></svg>;
-const FileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mx-2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></svg>;
-const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
-const ExternalLinkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>;
+import { AppIcon, PlusIcon, EditIcon, TrashIcon, UsersIcon, CalendarIcon, HomeIcon, BrainCircuitIcon, FileDownIcon, UploadCloudIcon, WarningIcon, LogOutIcon, SunIcon, MoonIcon, LanguageIcon, SettingsIcon, ArchiveIcon, ArchiveIconSmall, FileSpreadsheet, FileText, DownloadIcon, ExternalLinkIcon } from './components/icons';
+import { Card, CardHeader, Modal, ConfirmationModal } from './components/ui';
+
+const TeacherManagement = lazy(() => import('./components/TeacherManagement').then(module => ({ default: module.TeacherManagement })));
+const SessionManagement = lazy(() => import('./components/SessionManagement').then(module => ({ default: module.SessionManagement })));
+const SettingsModal = lazy(() => import('./components/Modals').then(module => ({ default: module.SettingsModal })));
+const TeacherModal = lazy(() => import('./components/Modals').then(module => ({ default: module.TeacherModal })));
+const SessionModal = lazy(() => import('./components/Modals').then(module => ({ default: module.SessionModal })));
+const ArchiveModal = lazy(() => import('./components/Modals').then(module => ({ default: module.ArchiveModal })));
+const SaveArchiveModal = lazy(() => import('./components/Modals').then(module => ({ default: module.SaveArchiveModal })));
+const AssignmentEditModal = lazy(() => import('./components/Modals').then(module => ({ default: module.AssignmentEditModal })));
 
 // --- Main App Component ---
 export default function App() {
@@ -112,8 +95,6 @@ export default function App() {
             const hallAssignments = { ...sessionAssignment.hallAssignments };
             const currentHall = [...(hallAssignments[hallNum] || [])];
 
-            // Create the new assigned teacher object. 
-            // We reset isRepeat to false because this is a manual override.
             const session = sessionMap[sessionId];
             const isSubjectConflict = session ? newTeacher.subject.trim().toLowerCase() === session.subject.trim().toLowerCase() : false;
             const newAssignedTeacher: AssignedTeacher = {
@@ -122,11 +103,9 @@ export default function App() {
                 isSubjectConflict
             };
 
-            // If the hall slot exists, replace it
             if (slotIndex < currentHall.length) {
                 currentHall[slotIndex] = newAssignedTeacher;
             } else {
-                // Should not happen usually if clicked on existing, but safety check
                 currentHall.push(newAssignedTeacher);
             }
 
@@ -134,16 +113,13 @@ export default function App() {
             sessionAssignment.hallAssignments = hallAssignments;
             newAssignments[sessionId] = sessionAssignment;
 
-            // Update stats
             const newStats = { ...prev.stats };
-            // Decrement old teacher count if exists
             if (assignmentEditConfig.currentTeacher) {
                 const oldId = assignmentEditConfig.currentTeacher.id;
                 if (newStats[oldId]) {
                     newStats[oldId] = { ...newStats[oldId], count: Math.max(0, newStats[oldId].count - 1) };
                 }
             }
-            // Increment new teacher count
             if (!newStats[newTeacher.id]) {
                 newStats[newTeacher.id] = { name: newTeacher.name, count: 0 };
             }
@@ -325,7 +301,7 @@ export default function App() {
                     updatedTeachers = updatedTeachers.map(t =>
                         t.id === conflict.existing.id
                             ? {
-                                ...t, // Keep id and availability
+                                ...t,
                                 name: conflict.imported.name,
                                 subject: conflict.imported.subject,
                                 maxSessions: conflict.imported.maxSessions,
@@ -408,7 +384,7 @@ export default function App() {
 
             parsedTeachers.forEach(importedTeacher => {
                 if (!importedTeacher || typeof importedTeacher.name !== 'string' || importedTeacher.name.trim() === '') {
-                    return; // Skip invalid or empty entries
+                    return;
                 }
                 const existing = existingTeachersMap.get(importedTeacher.name.toLowerCase().trim());
                 if (existing) {
@@ -438,7 +414,7 @@ export default function App() {
             setImportError(T('aiError'));
         } finally {
             setIsImporting(false);
-            e.target.value = ''; // Reset file input
+            e.target.value = '';
         }
     };
 
@@ -466,7 +442,6 @@ export default function App() {
                     const slot = row[3]?.toString().trim() || '';
                     const subject = row[4]?.toString().trim() || '';
 
-                    // Construct combined name if individual parts exist
                     const combinedName = day && period && slot ? `${day} - ${period} - ${slot}` : sessionName;
 
                     return {
@@ -519,7 +494,7 @@ export default function App() {
             setSessionImportError(error.message || T('aiError'));
         } finally {
             setIsImportingSessions(false);
-            e.target.value = ''; // Reset file input
+            e.target.value = '';
         }
     };
 
@@ -578,7 +553,6 @@ export default function App() {
         };
 
         const executeChecksAndGeneration = () => {
-            // Check 1: Per-session eligibility due to subject conflicts.
             const neededPerSession = hallCount * 2;
             let problematicSession = null;
             for (const session of sessions) {
@@ -589,7 +563,7 @@ export default function App() {
                         eligibleCount: eligibleTeachers.length,
                         neededCount: neededPerSession,
                     };
-                    break; // Found the first problematic session
+                    break;
                 }
             }
 
@@ -611,7 +585,6 @@ export default function App() {
                 return;
             }
 
-            // Check 2: Overall capacity check based on max sessions.
             const totalSlotsNeeded = sessions.length * hallCount * 2;
             const totalSlotsAvailable = teachers.reduce((sum, teacher) => sum + teacher.maxSessions, 0);
 
@@ -635,7 +608,6 @@ export default function App() {
             performGeneration();
         };
 
-        // Initial Data Review Reminder
         setConfirmationModalConfig({
             title: T('confirmGenerateTitle'),
             message: T('confirmGenerateMessage'),
@@ -649,18 +621,14 @@ export default function App() {
         setIsConfirmationModalOpen(true);
     };
 
-
-
     const handleExportPDF = async () => {
         if (!distributionResult) return;
         setIsExporting(true);
-        // Small delay to allow allow UI to update if the export is instant (though font loading takes time)
         await new Promise(resolve => setTimeout(resolve, 100));
         await exportToPDF(distributionResult, sessions, teachers, hallCount, T, language);
         setIsExporting(false);
     };
 
-    // --- Memoized Data for Display ---
     const sessionMap = useMemo(() => {
         return sessions.reduce((map, session) => {
             map[session.id] = session;
@@ -674,7 +642,6 @@ export default function App() {
     }, [teachers]);
 
 
-    // --- Conditional Rendering for Auth ---
     if (isCheckingAuth) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -725,121 +692,44 @@ export default function App() {
             </header>
 
             <main className="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* --- Column 1: Data Input --- */}
                 <div className="lg:col-span-1 space-y-6">
-                    {/* Teachers Card */}
-                    <Card>
-                        <CardHeader><UsersIcon /> {T('manageTeachers')}</CardHeader>
-                        <div className="max-h-60 overflow-y-auto ps-2">
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {teachers.map(t => (
-                                    <li key={t.id} className="py-2 flex justify-between items-center">
-                                        <div>
-                                            <p className="font-semibold">{t.name}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{t.subject} - {t.maxSessions} {T('maxSessionsSuffix')}</p>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <button onClick={() => handleEditTeacher(t)} className="p-1" title={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')} aria-label={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')}><EditIcon /></button>
-                                            <button onClick={() => handleDeleteTeacher(t.id)} className="p-1" title={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')} aria-label={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')}><TrashIcon /></button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <button onClick={handleAddTeacher} className="mt-4 w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 flex items-center justify-center transition-colors">
-                            <PlusIcon /> {T('addTeacher')}
-                        </button>
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
-                                <UploadCloudIcon />
-                                {T('importTeachers')}
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                {T('importTeachersHelp')}
-                            </p>
-                            <input
-                                type="file"
-                                id="file-upload"
-                                className="hidden"
-                                accept=".csv,image/png,image/jpeg,.xlsx,.xls"
-                                onChange={handleFileImport}
-                                disabled={isImporting}
-                            />
-                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                                <label htmlFor="file-upload" className={`w-full cursor-pointer bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                    {isImporting ? T('importing') : T('chooseFile')}
-                                </label>
-                                <button onClick={() => downloadTeacherExcelTemplate(T)} className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/40 flex items-center justify-center transition-colors text-sm font-medium">
-                                    {language === 'ar' ? 'تحميل نموذج Excel' : (language === 'fr' ? 'Modèle Excel' : 'Excel Template')}
-                                </button>
-                            </div>
-                            {importError && <p className="text-red-500 text-xs mt-2">{importError}</p>}
-                        </div>
-                    </Card>
+                    <Suspense fallback={<div>{T('loading')}...</div>}>
+                        <TeacherManagement
+                            teachers={teachers}
+                            onEditTeacher={handleEditTeacher}
+                            onDeleteTeacher={handleDeleteTeacher}
+                            onAddTeacher={handleAddTeacher}
+                            onFileImport={handleFileImport}
+                            isImporting={isImporting}
+                            importError={importError}
+                            onDownloadTemplate={downloadTeacherExcelTemplate}
+                            language={language}
+                            T={T}
+                        />
 
-                    {/* Sessions & Halls Card */}
-                    <Card>
-                        <CardHeader><CalendarIcon /> {T('examsSchedule')}</CardHeader>
-                        <div className="max-h-48 overflow-y-auto ps-2">
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {sessions.map(s => (
-                                    <li key={s.id} className="py-2 flex justify-between items-center">
-                                        <div>
-                                            <p className="font-semibold">{s.name}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{T('sessionSubject')}: {s.subject}</p>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <button onClick={() => handleEditSession(s)} className="p-1" title={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')} aria-label={language === 'ar' ? 'تعديل' : (language === 'fr' ? 'Modifier' : 'Edit')}><EditIcon /></button>
-                                            <button onClick={() => handleDeleteSession(s.id)} className="p-1" title={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')} aria-label={language === 'ar' ? 'حذف' : (language === 'fr' ? 'Supprimer' : 'Delete')}><TrashIcon /></button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <button onClick={handleAddSession} className="mt-4 w-full bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 flex items-center justify-center transition-colors">
-                            <PlusIcon /> {T('addSession')}
-                        </button>
-                        <div className="mt-4">
-                            <label htmlFor="hallCount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center"><HomeIcon /> {T('hallCountLabel')}</label>
-                            <input type="number" id="hallCount" value={hallCount} onChange={e => setHallCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-center font-bold text-lg p-2" />
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
-                                <UploadCloudIcon />
-                                {T('importSessions')}
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                {T('importSessionsHelp')}
-                            </p>
-                            <input
-                                type="file"
-                                id="session-file-upload"
-                                className="hidden"
-                                accept=".csv,image/png,image/jpeg,.xlsx,.xls"
-                                onChange={handleSessionFileImport}
-                                disabled={isImportingSessions}
-                            />
-                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                                <label htmlFor="session-file-upload" className={`w-full cursor-pointer bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors ${isImportingSessions ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                    {isImportingSessions ? T('importing') : T('chooseFile')}
-                                </label>
-                                <button onClick={() => downloadSessionExcelTemplate(T)} className="w-full bg-blue-100 text-blue-700 py-2 px-4 rounded-md hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/40 flex items-center justify-center transition-colors text-sm font-medium">
-                                    {language === 'ar' ? 'تحميل نموذج Excel' : (language === 'fr' ? 'Modèle Excel' : 'Excel Template')}
-                                </button>
-                            </div>
-                            {sessionImportError && <p className="text-red-500 text-xs mt-2">{sessionImportError}</p>}
-                        </div>
-                    </Card>
+                        <SessionManagement
+                            sessions={sessions}
+                            onEditSession={handleEditSession}
+                            onDeleteSession={handleDeleteSession}
+                            onAddSession={handleAddSession}
+                            hallCount={hallCount}
+                            setHallCount={setHallCount}
+                            onSessionFileImport={handleSessionFileImport}
+                            isImportingSessions={isImportingSessions}
+                            sessionImportError={sessionImportError}
+                            onDownloadTemplate={downloadSessionExcelTemplate}
+                            language={language}
+                            T={T}
+                        />
+                    </Suspense>
 
                     <div className="sticky top-6">
                         <button onClick={handleGenerate} className="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-lg hover:bg-green-700 flex items-center justify-center text-lg font-bold transition-all transform hover:scale-105">
                             <BrainCircuitIcon /> {T('generateDistribution')}
                         </button>
                     </div>
-
                 </div>
 
-                {/* --- Column 2: Results & Output --- */}
                 <div className="lg:col-span-2 space-y-6">
                     {!distributionResult && (
                         <div className="h-full flex flex-col items-center justify-center bg-white rounded-lg shadow p-8 text-center dark:bg-gray-800">
@@ -850,7 +740,6 @@ export default function App() {
                     )}
                     {distributionResult && (
                         <>
-                            {/* Distribution Tabs */}
                             <Card>
                                 <CardHeader>{T('distributionResults')}</CardHeader>
                                 <div className="border-b border-gray-200 dark:border-gray-700">
@@ -889,7 +778,6 @@ export default function App() {
                                                                             <td className="px-6 py-4 whitespace-nowrap font-medium">
                                                                                 {T('hall')} {hallNum}
                                                                             </td>
-                                                                            {/* Proctor 1 */}
                                                                             <td
                                                                                 className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[0] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : (proctors[0] as AssignedTeacher)?.isSubjectConflict ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}
                                                                                 onClick={() => handleEditAssignment(sessionId, hallNumber, 0, proctors[0])}
@@ -909,7 +797,6 @@ export default function App() {
                                                                                     )}
                                                                                 </div>
                                                                             </td>
-                                                                            {/* Proctor 2 */}
                                                                             <td
                                                                                 className={`px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${(proctors[1] as AssignedTeacher)?.isRepeat ? 'text-red-600 font-bold' : (proctors[1] as AssignedTeacher)?.isSubjectConflict ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}
                                                                                 onClick={() => handleEditAssignment(sessionId, hallNumber, 1, proctors[1])}
@@ -965,7 +852,6 @@ export default function App() {
                                 </div>
                             </Card>
 
-                            {/* AI Suggestions Card */}
                             <Card>
                                 <CardHeader><BrainCircuitIcon /> {T('aiSuggestionsTitle')}</CardHeader>
                                 {isLoadingSuggestions && <p className="text-gray-600 dark:text-gray-300 animate-pulse">{T('aiAnalyzing')}...</p>}
@@ -976,7 +862,6 @@ export default function App() {
                                 )}
                             </Card>
 
-                            {/* Export Card */}
                             <Card>
                                 <CardHeader>{T('exportReports')}</CardHeader>
                                 <div className="flex flex-col sm:flex-row gap-4">
@@ -1017,19 +902,42 @@ export default function App() {
                 {T('appDeveloper')}
             </footer>
 
-            {assignmentEditConfig && distributionResult && (
-                <AssignmentEditModal
-                    teachers={teachers}
-                    sessionAssignment={distributionResult.assignments[assignmentEditConfig.sessionId]}
-                    currentTeacher={assignmentEditConfig.currentTeacher}
-                    onSave={handleAssignmentUpdate}
-                    onClose={() => setAssignmentEditConfig(null)}
-                    T={T}
-                />
-            )}
-            {isSettingsModalOpen && <SettingsModal onClose={() => setIsSettingsModalOpen(false)} T={T} />}
-            {isTeacherModalOpen && <TeacherModal teacher={currentTeacher} sessions={sessions} onSave={handleSaveTeacher} onClose={() => setIsTeacherModalOpen(false)} T={T} />}
-            {isSessionModalOpen && <SessionModal session={currentSession} subjects={uniqueSubjects} onSave={handleSaveSession} onClose={() => setIsSessionModalOpen(false)} T={T} />}
+            <Suspense fallback={null}>
+                {assignmentEditConfig && distributionResult && (
+                    <AssignmentEditModal
+                        teachers={teachers}
+                        sessionAssignment={distributionResult.assignments[assignmentEditConfig.sessionId]}
+                        currentTeacher={assignmentEditConfig.currentTeacher}
+                        onSave={handleAssignmentUpdate}
+                        onClose={() => setAssignmentEditConfig(null)}
+                        T={T}
+                    />
+                )}
+                {isSettingsModalOpen && <SettingsModal onClose={() => setIsSettingsModalOpen(false)} T={T} />}
+                {isTeacherModalOpen && <TeacherModal teacher={currentTeacher} sessions={sessions} onSave={handleSaveTeacher} onClose={() => setIsTeacherModalOpen(false)} T={T} />}
+                {isSessionModalOpen && <SessionModal session={currentSession} subjects={uniqueSubjects} onSave={handleSaveSession} onClose={() => setIsSessionModalOpen(false)} T={T} />}
+                {isArchiveModalOpen && (
+                    <ArchiveModal
+                        onClose={() => setIsArchiveModalOpen(false)}
+                        T={T}
+                        language={language}
+                    />
+                )}
+                {isSaveArchiveModalOpen && distributionResult && (
+                    <SaveArchiveModal
+                        distributionResult={distributionResult}
+                        sessions={sessions}
+                        teachers={teachers}
+                        hallCount={hallCount}
+                        onClose={() => {
+                            setIsSaveArchiveModalOpen(false);
+                            setArchiveName('');
+                        }}
+                        T={T}
+                    />
+                )}
+            </Suspense>
+
             {isConfirmationModalOpen && confirmationModalConfig && (
                 <ConfirmationModal
                     title={confirmationModalConfig.title}
@@ -1265,601 +1173,6 @@ const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({ confl
 };
 
 
-interface CardProps {
-    children: React.ReactNode;
-}
-const Card: React.FC<CardProps> = ({ children }) => (
-    <div className="bg-white rounded-lg shadow p-4 sm:p-6 dark:bg-gray-800">{children}</div>
-);
+// Removed UI components (Card, CardHeader)
 
-interface CardHeaderProps {
-    children: React.ReactNode;
-}
-const CardHeader: React.FC<CardHeaderProps> = ({ children }) => (
-    <h3 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 flex items-center dark:text-gray-100 dark:border-gray-700">{children}</h3>
-);
-
-interface SettingsModalProps {
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-}
-const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, T }) => {
-    const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-    const [isSaved, setIsSaved] = useState(false);
-
-    const handleSave = () => {
-        localStorage.setItem('gemini_api_key', apiKey);
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 2000); // Hide message after 2s
-    };
-
-    return (
-        <Modal title={T('settingsTitle')} onClose={onClose}>
-            <div className="space-y-4">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {T('settingsDescription')}
-                </p>
-                <div>
-                    <label htmlFor="api-key-input" className="block text-sm font-medium">{T('geminiApiKey')}</label>
-                    <input
-                        id="api-key-input"
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2"
-                        placeholder={T('apiKeyPlaceholder')}
-                    />
-                    <div className="mt-2 text-sm text-end">
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 underline inline-flex items-center gap-1 transition-colors">
-                            {T('getApiKeyLink')} <ExternalLinkIcon />
-                        </a>
-                    </div>
-                </div>
-                <div className="pt-4 flex justify-between items-center">
-                    <span className={`text-sm text-green-600 dark:text-green-400 transition-opacity duration-300 ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
-                        {T('settingsSaved')}
-                    </span>
-                    <div className="flex space-x-2 rtl:space-x-reverse">
-                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">{T('close')}</button>
-                        <button type="button" onClick={handleSave} className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">{T('save')}</button>
-                    </div>
-                </div>
-            </div>
-        </Modal>
-    );
-};
-
-interface TeacherModalProps {
-    teacher: Teacher | null;
-    sessions: Session[];
-    onSave: (teacher: Teacher) => void;
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-}
-const TeacherModal: React.FC<TeacherModalProps> = ({ teacher, sessions, onSave, onClose, T }) => {
-    const [formData, setFormData] = useState<Teacher>(teacher || { id: '', name: '', subject: '', maxSessions: 4, strictness: 3, notes: '', availability: [] });
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: (name === 'maxSessions' || name === 'strictness') ? parseInt(value) || 1 : value }));
-    };
-
-    const handleAvailabilityChange = (sessionId: string) => {
-        setFormData(prev => {
-            const newAvailability = prev.availability.includes(sessionId)
-                ? prev.availability.filter(id => id !== sessionId)
-                : [...prev.availability, sessionId];
-            return { ...prev, availability: newAvailability };
-        });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (formData.name && formData.subject) {
-            onSave(formData);
-        }
-    };
-
-    return (
-        <Modal title={teacher?.id ? T('modalEditTeacher') : T('modalAddTeacher')} onClose={onClose}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label htmlFor="teacher-name" className="block text-sm font-medium">{T('fullName')}</label>
-                    <input id="teacher-name" type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
-                </div>
-                <div>
-                    <label htmlFor="teacher-subject" className="block text-sm font-medium">{T('subjectTaught')}</label>
-                    <input id="teacher-subject" type="text" name="subject" value={formData.subject} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required />
-                </div>
-                <div>
-                    <label htmlFor="teacher-max-sessions" className="block text-sm font-medium">{T('maxSessions')}</label>
-                    <input id="teacher-max-sessions" type="number" name="maxSessions" value={formData.maxSessions} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" />
-                </div>
-                <div>
-                    <label htmlFor="teacher-strictness" className="block text-sm font-medium">{T('strictnessLevel') || 'مستوى الصرامة/التجربة (1-5)'}</label>
-                    <input id="teacher-strictness" type="number" name="strictness" value={formData.strictness} onChange={handleChange} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required min="1" max="5" />
-                </div>
-                <div>
-                    <label htmlFor="teacher-notes" className="block text-sm font-medium">{T('notes')}</label>
-                    <textarea id="teacher-notes" name="notes" value={formData.notes} onChange={handleChange} rows={2} className="mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">{T('availabilityHelp')}</label>
-                    <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-md p-2 space-y-2 bg-gray-50 dark:bg-gray-900">
-                        {sessions.length > 0 ? sessions.map(session => (
-                            <div key={session.id} className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id={`session-avail-${session.id}`}
-                                    checked={formData.availability.includes(session.id)}
-                                    onChange={() => handleAvailabilityChange(session.id)}
-                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor={`session-avail-${session.id}`} className="ms-3 block text-sm text-gray-900 dark:text-gray-200 select-none cursor-pointer">
-                                    {session.name} <span className="text-gray-500 dark:text-gray-400">({session.subject})</span>
-                                </label>
-                            </div>
-                        )) : <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">{T('noSessionsForAvailability')}</p>}
-                    </div>
-                </div>
-                <div className="pt-4 flex justify-end space-x-2 rtl:space-x-reverse">
-                    <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">{T('cancel')}</button>
-                    <button type="submit" className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">{T('save')}</button>
-                </div>
-            </form>
-        </Modal>
-    );
-};
-
-interface SessionModalProps {
-    session: Session | null;
-    subjects: string[];
-    onSave: (session: Session) => void;
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-}
-const SessionModal: React.FC<SessionModalProps> = ({ session, subjects, onSave, onClose, T }) => {
-    const days = useMemo(() => Array.from({ length: 5 }, (_, i) => `${T('day')} ${i + 1}`), [T]);
-    const periods = useMemo(() => [T('morningPeriod'), T('eveningPeriod')], [T]);
-    const slots = useMemo(() => Array.from({ length: 4 }, (_, i) => `${T('slot')} ${i + 1}`), [T]);
-
-    // State for each part of the session
-    const [day, setDay] = useState(days[0]);
-    const [period, setPeriod] = useState(periods[0]);
-    const [slot, setSlot] = useState(slots[0]);
-    const [subject, setSubject] = useState(subjects[0] || '');
-
-    // Effect to populate form when editing an existing session
-    useEffect(() => {
-        if (session && session.id) {
-            const parts = session.name.split(' - ');
-            if (parts.length === 3) {
-                const [dayPart, periodPart, slotPart] = parts;
-
-                const allLangs = ['ar', 'en', 'fr'] as const;
-
-                const getIndex = (part: string, key: 'day' | 'slot' | 'period', count: number): number => {
-                    for (const lang of allLangs) {
-                        if (key === 'period') {
-                            if (part === t('morningPeriod', lang)) return 0;
-                            if (part === t('eveningPeriod', lang)) return 1;
-                        } else {
-                            for (let i = 0; i < count; i++) {
-                                if (part === `${t(key, lang)} ${i + 1}`) return i;
-                            }
-                        }
-                    }
-                    return -1; // Not found
-                };
-
-                const dayIndex = getIndex(dayPart, 'day', 5);
-                const periodIndex = getIndex(periodPart, 'period', 2);
-                const slotIndex = getIndex(slotPart, 'slot', 4);
-
-                if (dayIndex !== -1) setDay(days[dayIndex]);
-                if (periodIndex !== -1) setPeriod(periods[periodIndex]);
-                if (slotIndex !== -1) setSlot(slots[slotIndex]);
-            }
-            setSubject(session.subject);
-        } else if (subjects.length > 0 && !session?.subject) {
-            setSubject(subjects[0]);
-        }
-    }, [session, subjects, days, periods, slots]);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const combinedName = `${day} - ${period} - ${slot}`;
-        if (combinedName && subject) {
-            onSave({
-                id: session?.id || '',
-                name: combinedName,
-                day: day,
-                period: period,
-                slot: slot,
-                subject: subject
-            });
-        }
-    };
-
-    const commonSelectClass = "mt-1 block w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2";
-
-    return (
-        <Modal title={session?.id ? T('modalEditSession') : T('modalAddSession')} onClose={onClose}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label htmlFor="session-day" className="block text-sm font-medium">{T('day')}</label>
-                    <select id="session-day" value={day} onChange={e => setDay(e.target.value)} className={commonSelectClass}>
-                        {days.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="session-period" className="block text-sm font-medium">{T('period')}</label>
-                    <select id="session-period" value={period} onChange={e => setPeriod(e.target.value)} className={commonSelectClass}>
-                        {periods.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="session-slot" className="block text-sm font-medium">{T('slot')}</label>
-                    <select id="session-slot" value={slot} onChange={e => setSlot(e.target.value)} className={commonSelectClass}>
-                        {slots.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="session-subject" className="block text-sm font-medium">{T('subjectProgrammed')}</label>
-                    <select
-                        id="session-subject"
-                        value={subject}
-                        onChange={e => setSubject(e.target.value)}
-                        className={commonSelectClass}
-                        required
-                    >
-                        <option value="" disabled>-- {T('chooseSubject')} --</option>
-                        {subjects.map(sub => (
-                            <option key={sub} value={sub}>{sub}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="pt-4 flex justify-end space-x-2 rtl:space-x-reverse">
-                    <button type="button" onClick={onClose} className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">{T('cancel')}</button>
-                    <button type="submit" className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">{T('save')}</button>
-                </div>
-            </form>
-        </Modal>
-    );
-};
-
-interface ModalProps {
-    title: string;
-    children: React.ReactNode;
-    onClose: () => void;
-}
-const Modal: React.FC<ModalProps> = ({ title, children, onClose }) => {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-full overflow-y-auto">
-                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">{title}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
-                </div>
-                <div className="p-6">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-interface ConfirmationModalProps {
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-    confirmText?: string;
-    confirmButtonClass?: string;
-    T: (key: TranslationKeys) => string;
-}
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ title, message, onConfirm, onCancel, confirmText, confirmButtonClass, T }) => {
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-full overflow-y-auto transform transition-all">
-                <div className="p-6">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
-                            <WarningIcon />
-                        </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ms-4 sm:text-start">
-                            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100" id="modal-title">
-                                {title}
-                            </h3>
-                            <div className="mt-2">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {message}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse sm:gap-x-3">
-                    <button
-                        type="button"
-                        onClick={onConfirm}
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto sm:text-sm ${confirmButtonClass || 'bg-red-600 hover:bg-red-700 focus:ring-red-500'}`}
-                    >
-                        {confirmText || T('confirm')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        className="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:w-auto sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
-                    >
-                        {T('cancel')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Archive Modal Component ---
-interface ArchiveModalProps {
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-    language: 'ar' | 'en' | 'fr';
-}
-const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, T, language }) => {
-    const [archivedItems, setArchivedItems] = useState<ArchivedDistribution[]>([]);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-    useEffect(() => {
-        setArchivedItems(getArchive());
-    }, []);
-
-    const handleDelete = (id: string) => {
-        deleteFromArchive(id);
-        setArchivedItems(getArchive());
-        setDeleteConfirmId(null);
-    };
-
-    const handleExportPDF = (item: ArchivedDistribution) => {
-        exportArchivedToPDF(item, T, language);
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">{T('archive')}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1">
-                    {archivedItems.length === 0 ? (
-                        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                            <p>{T('archiveEmpty')}</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {archivedItems.map(item => (
-                                <div key={item.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <h4 className="font-semibold text-lg">{item.name}</h4>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                {T('archiveDate')}: {formatDate(item.date)}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {item.sessions.length} {T('sessionCount')} • {item.hallCount} {T('hall')}
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleExportPDF(item)}
-                                                className="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm transition-colors"
-                                            >
-                                                PDF
-                                            </button>
-                                            {deleteConfirmId === item.id ? (
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={() => handleDelete(item.id)}
-                                                        className="bg-red-600 text-white py-1 px-2 rounded-md hover:bg-red-700 text-sm transition-colors"
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setDeleteConfirmId(null)}
-                                                        className="bg-gray-300 text-gray-700 py-1 px-2 rounded-md hover:bg-gray-400 text-sm transition-colors dark:bg-gray-600 dark:text-gray-200"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setDeleteConfirmId(item.id)}
-                                                    className="bg-gray-200 text-gray-700 py-1 px-3 rounded-md hover:bg-gray-300 text-sm transition-colors dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
-                                                >
-                                                    {T('deleteFromArchive')}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-                <div className="p-4 border-t dark:border-gray-700">
-                    <button onClick={onClose} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
-                        {T('close')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Save Archive Modal Component ---
-interface SaveArchiveModalProps {
-    distributionResult: DistributionResult;
-    sessions: Session[];
-    teachers: Teacher[];
-    hallCount: number;
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-}
-const SaveArchiveModal: React.FC<SaveArchiveModalProps> = ({ distributionResult, sessions, teachers, hallCount, onClose, T }) => {
-    const [name, setName] = useState('');
-    const [isSaved, setIsSaved] = useState(false);
-
-    const handleSave = () => {
-        try {
-            saveToArchive(name, distributionResult, sessions, teachers, hallCount);
-            setIsSaved(true);
-            setTimeout(() => {
-                onClose();
-            }, 1500);
-        } catch (error) {
-            console.error('Failed to save to archive:', error);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">{T('saveToArchive')}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
-                </div>
-                <div className="p-6">
-                    {isSaved ? (
-                        <div className="text-center py-4">
-                            <div className="text-green-600 dark:text-green-400 text-xl mb-2">✓</div>
-                            <p className="text-green-600 dark:text-green-400 font-semibold">{T('archiveSaved')}</p>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {T('archiveName')}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder={T('archiveNamePlaceholder')}
-                                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2"
-                                />
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={onClose}
-                                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
-                                >
-                                    {T('cancel')}
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
-                                >
-                                    {T('save')}
-                                </button>
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Assignment Edit Modal ---
-interface AssignmentEditModalProps {
-    teachers: Teacher[];
-    sessionAssignment: SessionAssignment;
-    currentTeacher: Teacher | null;
-    onSave: (teacher: Teacher) => void;
-    onClose: () => void;
-    T: (key: TranslationKeys) => string;
-}
-
-const AssignmentEditModal: React.FC<AssignmentEditModalProps> = ({ teachers, sessionAssignment, currentTeacher, onSave, onClose, T }) => {
-    const [search, setSearch] = useState('');
-
-    const getTeacherStatus = (teacherId: string) => {
-        // Check if in reserves
-        if (sessionAssignment.reserves.find(t => t.id === teacherId)) return { label: T('activeMapReserve'), color: 'text-green-600', isAvailable: true };
-
-        // Check if assigned in another hall
-        for (const [hallNum, proctors] of Object.entries(sessionAssignment.hallAssignments) as [string, Teacher[]][]) {
-            if (proctors.some(p => p.id === teacherId)) return { label: `${T('hall')} ${hallNum}`, color: 'text-orange-600', isAvailable: false };
-        }
-
-        return { label: T('unavailable'), color: 'text-gray-400', isAvailable: false };
-    };
-
-    const filteredTeachers = teachers.filter(t =>
-        t.name.toLowerCase().includes(search.toLowerCase()) &&
-        t.id !== currentTeacher?.id
-    );
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[80vh]">
-                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">{T('editAssignment')}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
-                </div>
-
-                <div className="p-4 border-b dark:border-gray-700">
-                    <input
-                        type="text"
-                        placeholder={T('searchTeacher')}
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-2"
-                    />
-                </div>
-
-                <div className="p-2 overflow-y-auto flex-1">
-                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredTeachers.map(teacher => {
-                            const status = getTeacherStatus(teacher.id);
-                            return (
-                                <li key={teacher.id}>
-                                    <button
-                                        onClick={() => onSave(teacher)}
-                                        className="w-full text-start p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors flex justify-between items-center"
-                                    >
-                                        <div>
-                                            <p className="font-semibold">{teacher.name}</p>
-                                            <p className="text-xs text-gray-500">{teacher.subject}</p>
-                                        </div>
-                                        <span className={`text-xs font-medium ${status.color}`}>
-                                            {status.label}
-                                        </span>
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </div>
-
-                <div className="p-4 border-t dark:border-gray-700">
-                    <button onClick={onClose} className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
-                        {T('close')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
+// Removed Modals (SettingsModal, TeacherModal, SessionModal, ArchiveModal, SaveArchiveModal, AssignmentEditModal)
