@@ -42,6 +42,7 @@ const SessionModal = lazy(() => import('./components/Modals').then(module => ({ 
 const ArchiveModal = lazy(() => import('./components/Modals').then(module => ({ default: module.ArchiveModal })));
 const SaveArchiveModal = lazy(() => import('./components/Modals').then(module => ({ default: module.SaveArchiveModal })));
 const AssignmentEditModal = lazy(() => import('./components/Modals').then(module => ({ default: module.AssignmentEditModal })));
+const LogoutConfirmModal = lazy(() => import('./components/Modals').then(module => ({ default: module.LogoutConfirmModal })));
 
 // --- Main App Component ---
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
     const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
     // Result states
     const [distributionResult, setDistributionResult] = useState<DistributionResult | null>(() => {
@@ -290,9 +292,32 @@ export default function App() {
     };
 
     const handleLogout = () => {
+        setIsLogoutConfirmOpen(true);
+    };
+
+    const handleLogoutKeep = () => {
         localStorage.removeItem('proctoringAppCurrentUser');
         setIsAuthenticated(false);
         setCurrentUser(null);
+        setIsLogoutConfirmOpen(false);
+    };
+
+    const handleLogoutDiscard = () => {
+        localStorage.removeItem('proctoringAppCurrentUser');
+        localStorage.removeItem('exam_teachers');
+        localStorage.removeItem('exam_sessions');
+        localStorage.removeItem('exam_hallCount');
+        localStorage.removeItem('exam_distributionResult');
+        
+        setTeachers(initialTeachers);
+        setSessions(initialSessions);
+        setHallCount(3);
+        setDistributionResult(null);
+        setAiSuggestions('');
+        
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        setIsLogoutConfirmOpen(false);
     };
 
     // --- CRUD Handlers for Teachers ---
@@ -974,6 +999,14 @@ export default function App() {
                             setIsSaveArchiveModalOpen(false);
                             setArchiveName('');
                         }}
+                        T={T}
+                    />
+                )}
+                {isLogoutConfirmOpen && (
+                    <LogoutConfirmModal
+                        onKeepAndLogout={handleLogoutKeep}
+                        onDiscardAndLogout={handleLogoutDiscard}
+                        onClose={() => setIsLogoutConfirmOpen(false)}
                         T={T}
                     />
                 )}

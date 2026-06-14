@@ -5,6 +5,10 @@ export const translations = {
 
     // --- Header ---
     logout: 'تسجيل الخروج',
+    logoutConfirmTitle: 'تأكيد تسجيل الخروج',
+    logoutConfirmMessage: 'هل تريد الاحتفاظ بالمعطيات الحالية (الأساتذة، الحصص، ونتائج التوزيع) للعودة إليها في أي وقت لاحق؟',
+    logoutKeepData: 'نعم، احتفظ بالمعطيات',
+    logoutDiscardData: 'لا، احذف المعطيات',
     toggleTheme: 'تغيير المظهر',
     toggleLanguage: 'تغيير اللغة',
 
@@ -229,6 +233,10 @@ export const translations = {
 
     // --- Header ---
     logout: 'Logout',
+    logoutConfirmTitle: 'Confirm Logout',
+    logoutConfirmMessage: 'Do you want to keep the current generated data (teachers, sessions, and distribution results) to return to them later?',
+    logoutKeepData: 'Yes, keep data',
+    logoutDiscardData: 'No, discard data',
     toggleTheme: 'Toggle Theme',
     toggleLanguage: 'Toggle Language',
 
@@ -453,6 +461,10 @@ Ensure the output is only valid JSON and nothing else.`,
 
     // --- Header ---
     logout: 'Déconnexion',
+    logoutConfirmTitle: 'Confirmer la déconnexion',
+    logoutConfirmMessage: 'Voulez-vous conserver les données générées actuelles (enseignants, sessions et résultats de répartition) pour y revenir plus tard ?',
+    logoutKeepData: 'Oui, conserver les données',
+    logoutDiscardData: 'Non, supprimer les données',
     toggleTheme: 'Changer de Thème',
     toggleLanguage: 'Changer de Langue',
 
