@@ -46,9 +46,24 @@ const AssignmentEditModal = lazy(() => import('./components/Modals').then(module
 // --- Main App Component ---
 export default function App() {
     // App states
-    const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers);
-    const [sessions, setSessions] = useState<Session[]>(initialSessions);
-    const [hallCount, setHallCount] = useState<number>(3);
+    const [teachers, setTeachers] = useState<Teacher[]>(() => {
+        try {
+            const saved = localStorage.getItem('exam_teachers');
+            return saved ? JSON.parse(saved) : initialTeachers;
+        } catch { return initialTeachers; }
+    });
+    const [sessions, setSessions] = useState<Session[]>(() => {
+        try {
+            const saved = localStorage.getItem('exam_sessions');
+            return saved ? JSON.parse(saved) : initialSessions;
+        } catch { return initialSessions; }
+    });
+    const [hallCount, setHallCount] = useState<number>(() => {
+        try {
+            const saved = localStorage.getItem('exam_hallCount');
+            return saved ? JSON.parse(saved) : 3;
+        } catch { return 3; }
+    });
 
     // UI states
     const [currentTeacher, setCurrentTeacher] = useState<Teacher | null>(null);
@@ -58,7 +73,12 @@ export default function App() {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
     // Result states
-    const [distributionResult, setDistributionResult] = useState<DistributionResult | null>(null);
+    const [distributionResult, setDistributionResult] = useState<DistributionResult | null>(() => {
+        try {
+            const saved = localStorage.getItem('exam_distributionResult');
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    });
     const [aiSuggestions, setAiSuggestions] = useState<string>('');
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [activeTab, setActiveTab] = useState('bySession');
@@ -79,6 +99,27 @@ export default function App() {
         slotIndex: number;
         currentTeacher: Teacher | null;
     } | null>(null);
+
+    // Auto-save effects
+    useEffect(() => {
+        localStorage.setItem('exam_teachers', JSON.stringify(teachers));
+    }, [teachers]);
+
+    useEffect(() => {
+        localStorage.setItem('exam_sessions', JSON.stringify(sessions));
+    }, [sessions]);
+
+    useEffect(() => {
+        localStorage.setItem('exam_hallCount', JSON.stringify(hallCount));
+    }, [hallCount]);
+
+    useEffect(() => {
+        if (distributionResult) {
+            localStorage.setItem('exam_distributionResult', JSON.stringify(distributionResult));
+        } else {
+            localStorage.removeItem('exam_distributionResult');
+        }
+    }, [distributionResult]);
 
     const handleEditAssignment = (sessionId: string, hallNum: number, slotIndex: number, currentTeacher: Teacher | undefined) => {
         setAssignmentEditConfig({ sessionId, hallNum, slotIndex, currentTeacher: currentTeacher || null });
